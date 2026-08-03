@@ -22,15 +22,15 @@ Schel is a console-based schedule management application built using Java 21 and
 
 ## Project Structure
 com.schel
-├── config
-├── controllers
-├── database
-├── exceptions
-├── menus
-├── models
-├── repository
-├── services
-└── utils
+-├── config
+-├── controllers
+-├── database
+-├── exceptions
+-├── menus
+-├── models
+-├── repository
+-├── services
+-└── utils
 
 
 ## Future Enhancements
