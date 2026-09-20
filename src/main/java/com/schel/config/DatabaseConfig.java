@@ -1,8 +1,8 @@
 package com.schel.config;
 
 public final class DatabaseConfig {
-    private static final String ENV_SUPABASE_URL = "https://xnzvpuifxxaagchbyxnk.supabase.co";
-    private static final String ENV_SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuenZwdWlmeHhhYWdjaGJ5eG5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MDU0NTQsImV4cCI6MjEwMDM4MTQ1NH0.NdFdVkjWREB_yx0orVhVIf75gqBSyi3Qw2dokVCfbu0";
+    private static final String ENV_SUPABASE_URL = "Link i guess ?";
+    private static final String ENV_SUPABASE_API_KEY = "Create Supabase tables and add the key here (Ofc i aint giving mine jit)";
 
     private final String supabaseUrl;
     private final String supabaseApiKey;
@@ -10,8 +10,8 @@ public final class DatabaseConfig {
     private static final DatabaseConfig INSTANCE = new DatabaseConfig();
 
     private DatabaseConfig() {
-        String ENV_SUPABASE_URL = "https://xnzvpuifxxaagchbyxnk.supabase.co";
-        String ENV_SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuenZwdWlmeHhhYWdjaGJ5eG5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MDU0NTQsImV4cCI6MjEwMDM4MTQ1NH0.NdFdVkjWREB_yx0orVhVIf75gqBSyi3Qw2dokVCfbu0";
+        String ENV_SUPABASE_URL = "Nope";
+        String ENV_SUPABASE_API_KEY = "Nearly Forgot to remove this too lol";
         if (isNullOrBlank(ENV_SUPABASE_URL) || isNullOrBlank(ENV_SUPABASE_API_KEY)) {
             throw new IllegalStateException("Environment variables SUPABASE_URL and SUPABASE_API_KEY must be set");
         }
