@@ -34,25 +34,85 @@
           <div>
             <p class="eyebrow">Organization</p>
             <h1>Categories</h1>
+            <p class="page-subtitle">Organize your schedules with a system that works for you.</p>
           </div>
-          <button class="btn btn-primary" type="button">New category</button>
+          <button id="open-create-modal" class="btn btn-primary" type="button">+ Add Category</button>
         </header>
 
-        <section class="panel-card">
-          <div class="panel-header">
-            <h2>Category library</h2>
-            <span class="badge badge-neutral">Draft</span>
+        <section class="panel-card schedule-toolbar" aria-label="Category search">
+          <div class="toolbar-grid single-search-grid">
+            <div class="field-group search-field">
+              <label for="category-search">Search</label>
+              <input id="category-search" type="search" placeholder="Search categories..." />
+            </div>
           </div>
+        </section>
 
-          <div class="empty-state" aria-live="polite">
-            <div class="empty-icon">🏷️</div>
-            <h3>No categories yet</h3>
-            <p>Categories will be organized here once the backend integration is connected.</p>
-            <button class="btn btn-primary" type="button">Create category</button>
+        <section class="panel-card schedule-panel" aria-live="polite">
+          <div class="panel-header schedule-header-row">
+            <h2>Your categories</h2>
+            <span id="category-count-badge" class="badge badge-neutral">0 categories</span>
           </div>
+          <div id="category-list" class="category-grid"></div>
         </section>
       </main>
     </div>
+
+    <div id="category-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Category</p>
+            <h2 id="category-modal-title">Create Category</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <form id="category-form" novalidate>
+          <div class="form-grid">
+            <div class="field-group form-span-2">
+              <label for="category-name">Category Name</label>
+              <input id="category-name" name="name" type="text" maxlength="100" placeholder="e.g. Work, Personal, Learning" />
+              <small class="field-error" data-error-for="name"></small>
+            </div>
+
+            <div class="field-group form-span-2">
+              <label for="category-color">Category Color</label>
+              <input id="category-color" name="color" type="color" value="#5b6cff" />
+              <small class="field-error" data-error-for="color"></small>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close-modal="true">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-category-btn">Create Category</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="delete-category-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="delete-category-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Delete</p>
+            <h2 id="delete-category-title">Delete category?</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <p id="delete-category-message" class="confirm-copy"></p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="true">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-category-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <script src="js/config.js"></script>
     <script src="js/categories.js"></script>

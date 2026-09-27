@@ -32,27 +32,189 @@
       <main class="content-panel">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Management</p>
+            <p class="eyebrow">Planning</p>
             <h1>Schedules</h1>
+            <p class="page-subtitle">Plan, organize, and stay on top of your day.</p>
           </div>
-          <button class="btn btn-primary" type="button">Add schedule</button>
+          <button class="btn btn-primary" id="open-create-modal" type="button">+ Add Schedule</button>
         </header>
 
-        <section class="panel-card">
-          <div class="panel-header">
-            <h2>Schedule planner</h2>
-            <span class="badge badge-success">Ready</span>
+        <section class="panel-card schedule-toolbar" aria-label="Schedule filters and search">
+          <div class="toolbar-grid">
+            <div class="field-group search-field">
+              <label for="schedule-search">Search</label>
+              <input id="schedule-search" type="search" placeholder="Search by title or description" />
+            </div>
+
+            <div class="filter-grid">
+              <div class="field-group">
+                <label for="schedule-date-filter">Date</label>
+                <input id="schedule-date-filter" type="date" />
+              </div>
+
+              <div class="field-group">
+                <label for="schedule-status-filter">Status</label>
+                <select id="schedule-status-filter">
+                  <option value="ALL">All</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="MISSED">Missed</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="schedule-priority-filter">Priority</label>
+                <select id="schedule-priority-filter">
+                  <option value="ALL">All</option>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="schedule-category-filter">Category</label>
+                <select id="schedule-category-filter">
+                  <option value="ALL">All</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div class="empty-state" aria-live="polite">
-            <div class="empty-icon">📅</div>
-            <h3>No schedule data yet</h3>
-            <p>This area will eventually load and manage schedule records from the backend.</p>
-            <button class="btn btn-primary" type="button">Create first schedule</button>
+          <div class="toolbar-actions">
+            <button class="btn btn-secondary" id="clear-filters" type="button">Clear Filters</button>
+            <button class="btn btn-secondary" id="sort-toggle" type="button">Sort: Date ↑</button>
           </div>
+        </section>
+
+        <section class="panel-card schedule-panel" aria-live="polite">
+          <div class="panel-header schedule-header-row">
+            <h2>Upcoming plans</h2>
+            <span id="schedule-count-badge" class="badge badge-neutral">0 schedules</span>
+          </div>
+          <div id="schedule-list" class="schedule-list"></div>
         </section>
       </main>
     </div>
+
+    <div id="schedule-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Schedule</p>
+            <h2 id="schedule-modal-title">Create Schedule</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <form id="schedule-form" novalidate>
+          <div class="form-grid">
+            <div class="field-group form-span-2">
+              <label for="schedule-title">Title</label>
+              <input id="schedule-title" name="title" type="text" maxlength="120" />
+              <small class="field-error" data-error-for="title"></small>
+            </div>
+
+            <div class="field-group form-span-2">
+              <label for="schedule-description">Description</label>
+              <textarea id="schedule-description" name="description" rows="4" placeholder="Optional details for this task"></textarea>
+              <small class="field-error" data-error-for="description"></small>
+            </div>
+
+            <div class="field-group">
+              <label for="schedule-date">Date</label>
+              <input id="schedule-date" name="task_date" type="date" />
+              <small class="field-error" data-error-for="task_date"></small>
+            </div>
+
+            <div class="field-group">
+              <label for="schedule-category">Category</label>
+              <select id="schedule-category" name="category"></select>
+              <small class="field-error" data-error-for="category"></small>
+            </div>
+
+            <div class="field-group">
+              <label for="schedule-start-time">Start Time</label>
+              <input id="schedule-start-time" name="start_time" type="time" />
+              <small class="field-error" data-error-for="start_time"></small>
+            </div>
+
+            <div class="field-group">
+              <label for="schedule-end-time">End Time</label>
+              <input id="schedule-end-time" name="end_time" type="time" />
+              <small class="field-error" data-error-for="end_time"></small>
+            </div>
+
+            <div class="field-group">
+              <label for="schedule-priority">Priority</label>
+              <select id="schedule-priority" name="priority">
+                <option value="LOW">Low</option>
+                <option value="MEDIUM" selected>Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+              <small class="field-error" data-error-for="priority"></small>
+            </div>
+
+            <div class="field-group">
+              <label for="schedule-status">Status</label>
+              <select id="schedule-status" name="status">
+                <option value="PENDING" selected>Pending</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="MISSED">Missed</option>
+              </select>
+              <small class="field-error" data-error-for="status"></small>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close-modal="true">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-schedule-btn">Save Schedule</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="schedule-detail-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel detail-panel" role="dialog" aria-modal="true" aria-labelledby="schedule-detail-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Details</p>
+            <h2 id="schedule-detail-title">Schedule Details</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <div id="schedule-detail-body" class="detail-body"></div>
+        <div class="modal-actions detail-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="true">Close</button>
+          <button type="button" class="btn btn-primary" id="detail-mark-complete">Mark as Completed</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="delete-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Delete</p>
+            <h2 id="delete-modal-title">Delete schedule?</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <p id="delete-message" class="confirm-copy"></p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="true">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <script src="js/config.js"></script>
     <script src="js/schedules.js"></script>

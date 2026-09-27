@@ -1,7 +1,7 @@
 package com.schel;
 
+import com.schel.api.AuthApiServer;
 import com.schel.config.DatabaseConfig;
-import com.schel.controllers.AuthController;
 import com.schel.menus.LoginMenu;
 import com.schel.menus.MainMenu;
 
@@ -9,9 +9,10 @@ public final class Main {
     public static void main(String[] args) {
         try {
             DatabaseConfig.getInstance();
-        } catch (IllegalStateException e) {
-            System.err.println("Missing SUPABASE_URL or SUPABASE_API_KEY environment variables. Set them and restart the application.");
-            System.exit(1);
+            AuthApiServer.start(8080);
+            System.out.println("SCHEL auth API running at http://localhost:8080/api");
+        } catch (Exception e) {
+            System.err.println("Failed to start the Schel auth API server: " + e.getMessage());
         }
 
         LoginMenu loginMenu = new LoginMenu();

@@ -34,27 +34,44 @@
           <div>
             <p class="eyebrow">Account</p>
             <h1>Profile</h1>
+            <p class="page-subtitle">Your account details.</p>
           </div>
-          <button class="btn btn-primary" type="button">Edit profile</button>
+          <button class="btn btn-secondary" type="button" disabled aria-label="Profile editing is not supported by the current backend">Edit profile</button>
         </header>
 
-        <section class="panel-card profile-card">
-          <div class="profile-header">
-            <div class="avatar">A</div>
-            <div>
-              <h2>Alex Morgan</h2>
-              <p>Product planner</p>
-            </div>
+        <section class="panel-card profile-card" aria-live="polite">
+          <div id="profile-loading" class="profile-loading">
+            <div class="load-skeleton" style="width: 68px; height: 68px; border-radius: 18px; margin-bottom: 18px;"></div>
+            <div class="load-skeleton" style="width: 180px; height: 24px; margin-bottom: 10px;"></div>
+            <div class="load-skeleton" style="width: 120px; height: 14px;"></div>
           </div>
 
-          <div class="profile-grid">
-            <div class="field-group">
-              <label>Username</label>
-              <input type="text" value="alexmorgan" aria-label="Username" />
+          <div id="profile-content" hidden>
+            <div class="profile-header">
+              <div id="profile-avatar" class="avatar">U</div>
+              <div>
+                <h2 id="profile-name">User</h2>
+                <p class="profile-subtitle">Account overview</p>
+              </div>
             </div>
-            <div class="field-group">
-              <label>Email</label>
-              <input type="email" value="alex@schel.io" aria-label="Email" />
+
+            <div class="profile-grid">
+              <div class="field-group">
+                <label for="profile-username">Username</label>
+                <input id="profile-username" type="text" readonly aria-label="Username" />
+              </div>
+              <div class="field-group">
+                <label for="profile-email">Email</label>
+                <input id="profile-email" type="email" readonly aria-label="Email" />
+              </div>
+              <div class="field-group form-span-2">
+                <label for="profile-created-at">Member since</label>
+                <input id="profile-created-at" type="text" readonly aria-label="Member since" />
+              </div>
+            </div>
+
+            <div class="profile-note">
+              <p>Profile editing is currently unavailable because the existing backend does not expose update-user endpoints.</p>
             </div>
           </div>
         </section>
