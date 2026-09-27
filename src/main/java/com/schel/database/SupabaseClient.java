@@ -16,7 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 import java.util.StringJoiner;
 
@@ -60,42 +59,75 @@ public final class SupabaseClient {
     }
 
     public String post(String path, Object body) throws DatabaseException {
+        return post(path, body, false);
+    }
+
+    public String postReturning(String path, Object body) throws DatabaseException {
+        return post(path, body, true);
+    }
+
+    private String post(String path, Object body, boolean returnRepresentation) throws DatabaseException {
         String json = toJson(body);
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(buildUri(path, null))
                 .timeout(Constants.HTTP_TIMEOUT)
                 .header(Constants.HEADER_API_KEY, config.getSupabaseApiKey())
                 .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
                 .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
                 .header(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
+                .POST(HttpRequest.BodyPublishers.ofString(json));
+        if (returnRepresentation) {
+            requestBuilder.header("Prefer", "return=representation");
+        }
+        HttpRequest request = requestBuilder.build();
         return send(request);
     }
 
     public String patch(String path, Object body) throws DatabaseException {
+        return patch(path, body, false);
+    }
+
+    public String patchReturning(String path, Object body) throws DatabaseException {
+        return patch(path, body, true);
+    }
+
+    private String patch(String path, Object body, boolean returnRepresentation) throws DatabaseException {
         String json = toJson(body);
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(buildUri(path, null))
                 .timeout(Constants.HTTP_TIMEOUT)
                 .header(Constants.HEADER_API_KEY, config.getSupabaseApiKey())
                 .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
                 .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
                 .header(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
-                .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
-                .build();
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(json));
+        if (returnRepresentation) {
+            requestBuilder.header("Prefer", "return=representation");
+        }
+        HttpRequest request = requestBuilder.build();
         return send(request);
     }
 
     public String delete(String path) throws DatabaseException {
-        HttpRequest request = HttpRequest.newBuilder()
+        return delete(path, false);
+    }
+
+    public String deleteReturning(String path) throws DatabaseException {
+        return delete(path, true);
+    }
+
+    private String delete(String path, boolean returnRepresentation) throws DatabaseException {
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(buildUri(path, null))
                 .timeout(Constants.HTTP_TIMEOUT)
                 .header(Constants.HEADER_API_KEY, config.getSupabaseApiKey())
                 .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
                 .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
-                .DELETE()
-                .build();
+                .DELETE();
+        if (returnRepresentation) {
+            requestBuilder.header("Prefer", "return=representation");
+        }
+        HttpRequest request = requestBuilder.build();
         return send(request);
     }
 
@@ -140,8 +172,10 @@ public final class SupabaseClient {
                 throw new DatabaseException("Supabase request failed with status " + status + ": " + body);
             }
             return body == null ? "" : body;
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new DatabaseException("Supabase request failed", e);
+        } catch (IOException e) {
             throw new DatabaseException("Supabase request failed", e);
         }
     }

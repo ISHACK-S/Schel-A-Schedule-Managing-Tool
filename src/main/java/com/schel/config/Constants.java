@@ -6,6 +6,9 @@ public final class Constants {
     public static final String APPLICATION_NAME = "Schel";
     public static final String SUPABASE_REST_PATH = "/rest/v1";
     public static final String USERS_TABLE = "users";
+    public static final String SCHEDULES_TABLE = "schedules";
+    public static final String CATEGORIES_TABLE = "categories";
+    public static final String REMINDERS_TABLE = "reminders";
 
     public static final String HEADER_API_KEY = "apikey";
     public static final String HEADER_AUTHORIZATION = "Authorization";

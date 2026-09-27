@@ -79,8 +79,12 @@ public final class UserRepository {
             throw new IllegalArgumentException("User cannot be null");
         }
 
-        client.post(Constants.USERS_TABLE, user);
-
-        return findByEmail(user.getEmail());
+        String response = client.postReturning(Constants.USERS_TABLE, user);
+        try {
+            User[] users = mapper.readValue(response, User[].class);
+            return users.length == 0 ? null : users[0];
+        } catch (JsonProcessingException e) {
+            throw new DatabaseException("Failed to parse created user response", e);
+        }
     }
 }

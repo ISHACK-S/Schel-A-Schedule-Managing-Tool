@@ -1,8 +1,8 @@
 package com.schel.config;
 
 public final class DatabaseConfig {
-    private static final String ENV_SUPABASE_URL = "Link i guess ?";
-    private static final String ENV_SUPABASE_API_KEY = "Create Supabase tables and add the key here (Ofc i aint giving mine jit)";
+    private static final String ENV_SUPABASE_URL = "SUPABASE_URL";
+    private static final String ENV_SUPABASE_API_KEY = "SUPABASE_API_KEY";
 
     private final String supabaseUrl;
     private final String supabaseApiKey;
@@ -10,17 +10,17 @@ public final class DatabaseConfig {
     private static final DatabaseConfig INSTANCE = new DatabaseConfig();
 
     private DatabaseConfig() {
-        String ENV_SUPABASE_URL = "Nope";
-        String ENV_SUPABASE_API_KEY = "Nearly Forgot to remove this too lol";
-        if (isNullOrBlank(ENV_SUPABASE_URL) || isNullOrBlank(ENV_SUPABASE_API_KEY)) {
+        String supabaseUrl = System.getenv(ENV_SUPABASE_URL);
+        String supabaseApiKey = System.getenv(ENV_SUPABASE_API_KEY);
+        if (isNullOrBlank(supabaseUrl) || isNullOrBlank(supabaseApiKey)) {
             throw new IllegalStateException("Environment variables SUPABASE_URL and SUPABASE_API_KEY must be set");
         }
-        this.supabaseUrl = ENV_SUPABASE_URL.trim();
-        this.supabaseApiKey = ENV_SUPABASE_API_KEY.trim();
+        this.supabaseUrl = supabaseUrl.trim();
+        this.supabaseApiKey = supabaseApiKey.trim();
     }
 
-    private static boolean isNullOrBlank(String s) {
-        return s == null || s.trim().isEmpty();
+    private static boolean isNullOrBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     public static DatabaseConfig getInstance() {
