@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -461,7 +462,7 @@ public final class AuthApiServer {
     private Map<String, Object> readJsonBody(HttpExchange exchange) throws IOException {
         byte[] raw = exchange.getRequestBody().readAllBytes();
         String body = new String(raw, StandardCharsets.UTF_8);
-        if (body == null || body.isBlank()) {
+        if (body.isBlank()) {
             throw new IllegalArgumentException("Request body is required.");
         }
         try {
@@ -524,7 +525,7 @@ public final class AuthApiServer {
         if (message != null && message.toLowerCase().contains("invalid credentials")) {
             return 401;
         }
-        if (message != null && message.toLowerCase().contains("required") || message.toLowerCase().contains("valid email")) {
+        if (message != null && (message.toLowerCase().contains("required") || message.toLowerCase().contains("valid email"))) {
             return 400;
         }
         return 500;

@@ -42,144 +42,223 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   `;
 
-  const mockStats = {
-    'total-schedules': 18,
-    pending: 7,
-    completed: 9,
-    missed: 2,
-    categories: 5,
-    reminders: 4
+  const formatDate = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('en', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(date);
   };
 
-  Object.entries(mockStats).forEach(([key, value]) => {
-    const node = document.querySelector(`[data-stat="${key}"]`);
-    if (node) {
-      node.textContent = value;
+  const formatTime = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('en', {
+      hour: 'numeric',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('en', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const priorityClass = (priority) => {
+    const normalized = (priority || '').toString().trim().toUpperCase();
+    if (normalized === 'HIGH') return 'priority-high';
+    if (normalized === 'MEDIUM') return 'priority-medium';
+    return 'priority-low';
+  };
+
+  const statusClass = (status) => {
+    const normalized = (status || '').toString().trim().toUpperCase();
+    if (normalized === 'COMPLETED') return 'status-done';
+    if (normalized === 'MISSED') return 'status-missed';
+    return 'status-pending';
+  };
+
+  const getScheduleDateValue = (schedule) => {
+    if (!schedule) return null;
+    if (schedule.task_date && schedule.start_time) {
+      return new Date(`${schedule.task_date}T${schedule.start_time}`).getTime();
     }
-  });
+    if (schedule.task_date) {
+      return new Date(`${schedule.task_date}T00:00:00`).getTime();
+    }
+    return null;
+  };
 
-  setLoadingState(todaySchedule, 3, 'schedule');
-  setLoadingState(upcomingSchedules, 2);
-  setLoadingState(reminderList, 2);
-  setLoadingState(categoryList, 1);
+  const getReminderDateValue = (reminder) => {
+    if (!reminder || !reminder.reminder_time) return null;
+    return new Date(reminder.reminder_time).getTime();
+  };
 
-  setTimeout(() => {
-    todaySchedule.innerHTML = [
-      {
-        time: '09:00',
-        title: 'Product Planning Session',
-        detail: '09:00 AM – 10:30 AM',
-        priority: 'High',
-        priorityClass: 'priority-high',
-        status: 'Pending',
-        statusClass: 'status-pending'
-      },
-      {
-        time: '12:30',
-        title: 'Design review',
-        detail: '12:30 PM – 01:15 PM',
-        priority: 'Medium',
-        priorityClass: 'priority-medium',
-        status: 'Pending',
-        statusClass: 'status-pending'
-      },
-      {
-        time: '16:00',
-        title: 'Deep work block',
-        detail: '04:00 PM – 05:30 PM',
-        priority: 'Low',
-        priorityClass: 'priority-low',
-        status: 'Done',
-        statusClass: 'status-done'
+  const renderStats = (schedules, categories, reminders) => {
+    const stats = {
+      'total-schedules': schedules.length,
+      pending: schedules.filter((schedule) => (schedule.status || '').toUpperCase() === 'PENDING').length,
+      completed: schedules.filter((schedule) => (schedule.status || '').toUpperCase() === 'COMPLETED').length,
+      missed: schedules.filter((schedule) => (schedule.status || '').toUpperCase() === 'MISSED').length,
+      categories: categories.length,
+      reminders: reminders.length
+    };
+
+    Object.entries(stats).forEach(([key, value]) => {
+      const node = document.querySelector(`[data-stat="${key}"]`);
+      if (node) {
+        node.textContent = value;
       }
-    ].map((item) => `
-      <div class="timeline-item">
-        <span class="timeline-time">${item.time}</span>
-        <div>
-          <strong>${item.title}</strong>
-          <small>${item.detail}</small>
-          <div class="timeline-meta">
-            <span class="priority-pill ${item.priorityClass}">${item.priority}</span>
-            <span class="status-pill ${item.statusClass}">${item.status}</span>
+    });
+  };
+
+  const renderTodaySchedules = (schedules) => {
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+    const todays = schedules.filter((schedule) => (schedule.task_date || '').slice(0, 10) === todayIso)
+      .sort((a, b) => (getScheduleDateValue(a) || 0) - (getScheduleDateValue(b) || 0));
+
+    if (!todays.length) {
+      todaySchedule.innerHTML = emptyState('No schedules today', 'You are all clear for today.');
+      return;
+    }
+
+    todaySchedule.innerHTML = todays.slice(0, 3).map((schedule) => {
+      const start = schedule.start_time ? formatTime(`${schedule.task_date}T${schedule.start_time}`) : 'Time TBD';
+      const end = schedule.end_time ? formatTime(`${schedule.task_date}T${schedule.end_time}`) : '';
+      const detail = end ? `${start} – ${end}` : start;
+      return `
+        <div class="timeline-item">
+          <span class="timeline-time">${schedule.start_time ? schedule.start_time.slice(0, 5) : '—'}</span>
+          <div>
+            <strong>${schedule.title || 'Untitled schedule'}</strong>
+            <small>${detail}</small>
+            <div class="timeline-meta">
+              <span class="priority-pill ${priorityClass(schedule.priority)}">${(schedule.priority || 'MEDIUM').toUpperCase()}</span>
+              <span class="status-pill ${statusClass(schedule.status)}">${(schedule.status || 'PENDING').toUpperCase()}</span>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+  };
 
-    upcomingSchedules.innerHTML = [
-      {
-        title: 'Sprint retrospective',
-        detail: 'Thursday, 11:00 AM',
-        priority: 'Medium',
-        priorityClass: 'priority-medium',
-        status: 'Pending',
-        statusClass: 'status-pending'
-      },
-      {
-        title: 'Team sync',
-        detail: 'Friday, 02:30 PM',
-        priority: 'High',
-        priorityClass: 'priority-high',
-        status: 'Scheduled',
-        statusClass: 'status-pending'
-      }
-    ].map((item) => `
+  const renderUpcomingSchedules = (schedules) => {
+    const upcoming = schedules
+      .filter((schedule) => !['COMPLETED', 'MISSED'].includes((schedule.status || '').toUpperCase()))
+      .filter((schedule) => {
+        const value = getScheduleDateValue(schedule);
+        if (value == null) return false;
+        return value >= new Date().setHours(0, 0, 0, 0);
+      })
+      .sort((a, b) => (getScheduleDateValue(a) || 0) - (getScheduleDateValue(b) || 0))
+      .slice(0, 4);
+
+    if (!upcoming.length) {
+      upcomingSchedules.innerHTML = emptyState('No upcoming schedules', 'Your next plan will appear here once it is created.');
+      return;
+    }
+
+    upcomingSchedules.innerHTML = upcoming.map((schedule) => `
       <div class="stack-item">
         <div class="list-row">
           <div>
-            <strong>${item.title}</strong>
-            <small>${item.detail}</small>
+            <strong>${schedule.title || 'Untitled schedule'}</strong>
+            <small>${formatDate(schedule.task_date)}${schedule.start_time ? ` · ${schedule.start_time.slice(0, 5)}` : ''}</small>
           </div>
         </div>
         <div class="timeline-meta">
-          <span class="priority-pill ${item.priorityClass}">${item.priority}</span>
-          <span class="status-pill ${item.statusClass}">${item.status}</span>
+          <span class="priority-pill ${priorityClass(schedule.priority)}">${(schedule.priority || 'MEDIUM').toUpperCase()}</span>
+          <span class="status-pill ${statusClass(schedule.status)}">${(schedule.status || 'PENDING').toUpperCase()}</span>
         </div>
       </div>
     `).join('');
+  };
 
-    reminderList.innerHTML = [
-      {
-        title: 'Submit design notes',
-        detail: 'For team review • 11:15 AM',
-        status: 'Upcoming',
-        statusClass: 'status-pending'
-      },
-      {
-        title: 'Follow up on client request',
-        detail: 'Due at 04:30 PM',
-        status: 'Scheduled',
-        statusClass: 'status-pending'
-      }
-    ].map((item) => `
+  const renderReminderList = (reminders) => {
+    const upcomingReminders = [...reminders]
+      .filter((reminder) => reminder && reminder.reminder_time)
+      .sort((a, b) => (getReminderDateValue(a) || 0) - (getReminderDateValue(b) || 0))
+      .slice(0, 4);
+
+    if (!upcomingReminders.length) {
+      reminderList.innerHTML = emptyState('No reminders yet', 'Your active reminders will show here.');
+      return;
+    }
+
+    reminderList.innerHTML = upcomingReminders.map((reminder) => `
       <div class="reminder-row">
         <div class="meta">
-          <strong>${item.title}</strong>
-          <small>${item.detail}</small>
+          <strong>${reminder.schedule_id ? `Reminder for ${reminder.schedule_id.slice(0, 8)}` : 'Reminder'}</strong>
+          <small>${formatDateTime(reminder.reminder_time)}</small>
         </div>
-        <span class="status-pill ${item.statusClass}">${item.status}</span>
+        <span class="status-pill ${statusClass(reminder.is_sent ? 'COMPLETED' : 'PENDING')}">${reminder.is_sent ? 'Sent' : 'Upcoming'}</span>
       </div>
     `).join('');
+  };
 
-    categoryList.innerHTML = [
-      { label: 'Work', color: '#5b6cff' },
-      { label: 'Planning', color: '#7c3aed' },
-      { label: 'Personal', color: '#1fb98a' },
-      { label: 'Health', color: '#f7b955' }
-    ].map((category) => `
-      <span class="category-item"><span class="category-dot" style="background:${category.color};"></span>${category.label}</span>
+  const renderCategories = (categories) => {
+    if (!categories.length) {
+      categoryList.innerHTML = emptyState('No categories yet', 'Create categories to organize your work.');
+      return;
+    }
+
+    categoryList.innerHTML = categories.slice(0, 8).map((category) => `
+      <span class="category-item"><span class="category-dot" style="background:${category.color || '#5b6cff'};"></span>${category.name || 'Untitled category'}</span>
     `).join('');
-  }, 650);
+  };
+
+  const loadDashboardData = async () => {
+    setLoadingState(todaySchedule, 3, 'schedule');
+    setLoadingState(upcomingSchedules, 2);
+    setLoadingState(reminderList, 2);
+    setLoadingState(categoryList, 1);
+
+    try {
+      const [schedules, categories, reminders] = await Promise.all([
+        window.SCHEL.scheduleApi.getSchedules(),
+        window.SCHEL.categoryApi.getCategories(),
+        window.SCHEL.reminderApi.getReminders()
+      ]);
+
+      renderStats(schedules, categories, reminders);
+      renderTodaySchedules(schedules);
+      renderUpcomingSchedules(schedules);
+      renderReminderList(reminders);
+      renderCategories(categories);
+    } catch (error) {
+      todaySchedule.innerHTML = emptyState('Unable to load dashboard data', 'Please try again in a moment.');
+      upcomingSchedules.innerHTML = emptyState('No upcoming schedules', 'Schedule data could not be loaded.');
+      reminderList.innerHTML = emptyState('No reminders yet', 'Reminder data could not be loaded.');
+      categoryList.innerHTML = emptyState('No categories yet', 'Category data could not be loaded.');
+      const message = error && error.message ? error.message : 'Unable to load dashboard data.';
+      if (window.SCHEL && window.SCHEL.showToast) {
+        window.SCHEL.showToast(message, 'error');
+      }
+    }
+  };
 
   document.querySelectorAll('[data-action="add-schedule"]').forEach((button) => {
     button.addEventListener('click', () => {
-      window.alert('Schedule creation UI will be added in a later stage.');
+      window.location.href = 'schedules.html';
     });
   });
 
   document.querySelectorAll('[data-action="add-reminder"]').forEach((button) => {
     button.addEventListener('click', () => {
-      window.alert('Reminder creation UI will be added in a later stage.');
+      window.location.href = 'reminders.html';
     });
   });
 
@@ -189,4 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
       window.SCHEL.logout();
     });
   }
+
+  loadDashboardData();
 });

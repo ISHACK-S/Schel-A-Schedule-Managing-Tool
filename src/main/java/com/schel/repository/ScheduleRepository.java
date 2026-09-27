@@ -1,16 +1,15 @@
 package com.schel.repository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.schel.config.Constants;
-import com.schel.database.SupabaseClient;
-import com.schel.exceptions.DatabaseException;
-import com.schel.models.Schedule;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.schel.database.SupabaseClient;
+import com.schel.exceptions.DatabaseException;
+import com.schel.models.Schedule;
 
 public final class ScheduleRepository {
 
@@ -62,6 +61,24 @@ public final class ScheduleRepository {
         if (scheduleId == null) return null;
         Map<String, String> params = new HashMap<>();
         params.put("id", "eq." + scheduleId);
+        String resp = client.get(TABLE, params);
+        try {
+            Schedule[] arr = mapper.readValue(resp, Schedule[].class);
+            return arr.length == 0 ? null : arr[0];
+        } catch (JsonProcessingException e) {
+            System.out.println("Supabase Response:");
+            System.out.println(resp);
+            System.out.println("Jackson exception while parsing schedules response:");
+            e.printStackTrace(System.out);
+            throw new DatabaseException("Failed to parse schedules response: " + e.getMessage(), e);
+        }
+    }
+
+    public Schedule getScheduleById(UUID userId, UUID scheduleId) throws DatabaseException {
+        if (userId == null || scheduleId == null) return null;
+        Map<String, String> params = new HashMap<>();
+        params.put("id", "eq." + scheduleId);
+        params.put("user_id", "eq." + userId);
         String resp = client.get(TABLE, params);
         try {
             Schedule[] arr = mapper.readValue(resp, Schedule[].class);
