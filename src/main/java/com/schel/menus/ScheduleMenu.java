@@ -4,6 +4,7 @@ import com.schel.controllers.ScheduleController;
 import com.schel.exceptions.AuthenticationException;
 import com.schel.exceptions.DatabaseException;
 import com.schel.models.Schedule;
+import com.schel.utils.ConsoleInput;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,7 +22,7 @@ public class ScheduleMenu {
     private final ScheduleController controller = ScheduleController.getInstance();
 
     public void show() {
-        Scanner scanner = new Scanner(System.in);
+        Scanner scanner = ConsoleInput.getScanner();
         while (true) {
             System.out.println("==============================");
             System.out.println("SCHEDULE MANAGER");
