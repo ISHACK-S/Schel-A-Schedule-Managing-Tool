@@ -1,14 +1,5 @@
 package com.schel.database;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.schel.config.Constants;
-import com.schel.config.DatabaseConfig;
-import com.schel.exceptions.DatabaseException;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -18,6 +9,15 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.StringJoiner;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.schel.config.Constants;
+import com.schel.config.DatabaseConfig;
+import com.schel.exceptions.DatabaseException;
 
 public final class SupabaseClient {
     private final HttpClient client;
@@ -32,7 +32,6 @@ public final class SupabaseClient {
                 .connectTimeout(Constants.HTTP_TIMEOUT)
                 .build();
         this.mapper = new ObjectMapper();
-        // Ensure Java Time types serialize as ISO-8601 strings
         this.mapper.registerModule(new JavaTimeModule());
         this.mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -108,6 +107,22 @@ public final class SupabaseClient {
         return send(request);
     }
 
+    public String patchReturning(String path, Object body) throws DatabaseException {
+        String json = toJson(body);
+        String requestPath = appendSelect(path);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(buildUri(requestPath, null))
+                .timeout(Constants.HTTP_TIMEOUT)
+                .header(Constants.HEADER_API_KEY, config.getSupabaseApiKey())
+                .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
+                .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
+                .header(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .header("Prefer", "return=representation")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        return send(request);
+    }
+
     public String delete(String path) throws DatabaseException {
         return delete(path, false);
     }
@@ -131,7 +146,25 @@ public final class SupabaseClient {
         return send(request);
     }
 
+    public String deleteReturning(String path) throws DatabaseException {
+        String requestPath = appendSelect(path);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(buildUri(requestPath, null))
+                .timeout(Constants.HTTP_TIMEOUT)
+                .header(Constants.HEADER_API_KEY, config.getSupabaseApiKey())
+                .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
+                .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
+                .header("Prefer", "return=representation")
+                .DELETE()
+                .build();
+        return send(request);
+    }
+
     private URI buildUri(String path, Map<String, String> queryParams) {
+        if (!config.isConfigured()) {
+            throw new IllegalStateException("SUPABASE_URL and SUPABASE_API_KEY must be configured before making Supabase requests.");
+        }
+
         String base = config.getSupabaseUrl();
         if (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
@@ -155,6 +188,16 @@ public final class SupabaseClient {
         return URI.create(sb.toString());
     }
 
+    private String appendSelect(String path) {
+        if (path == null || path.isBlank()) {
+            return "?select=*";
+        }
+        if (path.contains("select=")) {
+            return path;
+        }
+        return path.contains("?") ? path + "&select=*" : path + "?select=*";
+    }
+
     private String toJson(Object obj) throws DatabaseException {
         try {
             return mapper.writeValueAsString(obj);
@@ -165,6 +208,9 @@ public final class SupabaseClient {
 
     private String send(HttpRequest request) throws DatabaseException {
         try {
+            if (!config.isConfigured()) {
+                throw new DatabaseException("Supabase is not configured. Set SUPABASE_URL and SUPABASE_API_KEY before using the backend.");
+            }
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             int status = response.statusCode();
             String body = response.body();

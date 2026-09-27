@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCHEL | Reminders</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+  </head>
+  <body class="app-page">
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Sidebar navigation">
+        <div class="brand-wrap">
+          <span class="brand-mark">S</span>
+          <span class="brand-name">SCHEL</span>
+        </div>
+
+        <nav class="main-nav" aria-label="Main navigation">
+          <a class="nav-item" href="dashboard.html">Dashboard</a>
+          <a class="nav-item" href="schedules.html">Schedules</a>
+          <a class="nav-item" href="categories.html">Categories</a>
+          <a class="nav-item active" href="reminders.html">Reminders</a>
+          <a class="nav-item" href="profile.html">Profile</a>
+          <button type="button" class="nav-item nav-button" data-action="logout">Logout</button>
+        </nav>
+      </aside>
+
+      <main class="content-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Alerts</p>
+            <h1>Reminders</h1>
+            <p class="page-subtitle">Never miss what matters.</p>
+          </div>
+          <button id="open-create-modal" class="btn btn-primary" type="button">+ Add Reminder</button>
+        </header>
+
+        <section class="panel-card schedule-toolbar" aria-label="Reminder search and filters">
+          <div class="toolbar-grid">
+            <div class="field-group search-field">
+              <label for="reminder-search">Search</label>
+              <input id="reminder-search" type="search" placeholder="Search reminders or schedules..." />
+            </div>
+
+            <div class="filter-grid">
+              <div class="field-group">
+                <label for="reminder-status-filter">Status</label>
+                <select id="reminder-status-filter">
+                  <option value="ALL">All</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="SENT">Sent</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="reminder-date-filter">Date</label>
+                <input id="reminder-date-filter" type="date" />
+              </div>
+
+              <div class="field-group">
+                <label for="reminder-schedule-filter">Schedule</label>
+                <select id="reminder-schedule-filter">
+                  <option value="ALL">All schedules</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="toolbar-actions">
+            <button id="clear-filters" class="btn btn-secondary" type="button">Clear Filters</button>
+            <button id="sort-toggle" class="btn btn-secondary" type="button">Sort: Soonest</button>
+          </div>
+        </section>
+
+        <section class="panel-card schedule-panel" aria-live="polite">
+          <div class="panel-header schedule-header-row">
+            <h2>Upcoming alerts</h2>
+            <span id="reminder-count-badge" class="badge badge-neutral">0 reminders</span>
+          </div>
+          <div id="reminder-list" class="reminder-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="reminder-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="reminder-modal-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Reminder</p>
+            <h2 id="reminder-modal-title">Create Reminder</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <form id="reminder-form" novalidate>
+          <div class="form-grid">
+            <div class="field-group form-span-2">
+              <label for="reminder-schedule">Associated Schedule</label>
+              <select id="reminder-schedule" name="schedule_id">
+                <option value="">Select a schedule</option>
+              </select>
+              <small class="field-error" data-error-for="schedule_id"></small>
+            </div>
+
+            <div class="field-group form-span-2">
+              <label for="reminder-time">Reminder Date &amp; Time</label>
+              <input id="reminder-time" name="reminder_time" type="datetime-local" />
+              <small class="field-error" data-error-for="reminder_time"></small>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close-modal="true">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-reminder-btn">Create Reminder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="reminder-detail-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel detail-panel" role="dialog" aria-modal="true" aria-labelledby="reminder-detail-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Details</p>
+            <h2 id="reminder-detail-title">Reminder Details</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <div id="reminder-detail-body" class="detail-body"></div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="true">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="delete-reminder-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="delete-reminder-title">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Delete</p>
+            <h2 id="delete-reminder-title">Delete reminder?</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="true" aria-label="Close">✕</button>
+        </div>
+
+        <p id="delete-reminder-message" class="confirm-copy">Are you sure you want to delete this reminder?</p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="true">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-reminder-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/reminders.js"></script>
+  </body>
+</html>

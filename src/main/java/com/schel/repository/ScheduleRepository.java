@@ -1,15 +1,15 @@
 package com.schel.repository;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.schel.database.SupabaseClient;
 import com.schel.exceptions.DatabaseException;
 import com.schel.models.Schedule;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public final class ScheduleRepository {
 
@@ -35,8 +35,9 @@ public final class ScheduleRepository {
         if (schedule == null) {
             throw new IllegalArgumentException("Schedule cannot be null");
         }
-        String response = client.postReturning(TABLE, schedule);
-        Schedule[] results = parseSchedules(response);
+        client.post(TABLE, schedule);
+        // Try to find created schedule by user and title (best-effort)
+        Schedule[] results = searchSchedule(schedule.getUserId(), schedule.getTitle());
         return results.length == 0 ? null : results[0];
     }
 
@@ -44,8 +45,33 @@ public final class ScheduleRepository {
         if (userId == null) return new Schedule[0];
         Map<String, String> params = new HashMap<>();
         params.put("user_id", "eq." + userId);
-        params.put("order", "task_date.asc,start_time.asc");
-        return getSchedules(params);
+        String resp = client.get(TABLE, params);
+        try {
+            return mapper.readValue(resp, Schedule[].class);
+        } catch (JsonProcessingException e) {
+            System.out.println("Supabase Response:");
+            System.out.println(resp);
+            System.out.println("Jackson exception while parsing schedules response:");
+            e.printStackTrace(System.out);
+            throw new DatabaseException("Failed to parse schedules response: " + e.getMessage(), e);
+        }
+    }
+
+    public Schedule getScheduleById(UUID scheduleId) throws DatabaseException {
+        if (scheduleId == null) return null;
+        Map<String, String> params = new HashMap<>();
+        params.put("id", "eq." + scheduleId);
+        String resp = client.get(TABLE, params);
+        try {
+            Schedule[] arr = mapper.readValue(resp, Schedule[].class);
+            return arr.length == 0 ? null : arr[0];
+        } catch (JsonProcessingException e) {
+            System.out.println("Supabase Response:");
+            System.out.println(resp);
+            System.out.println("Jackson exception while parsing schedules response:");
+            e.printStackTrace(System.out);
+            throw new DatabaseException("Failed to parse schedules response: " + e.getMessage(), e);
+        }
     }
 
     public Schedule getScheduleById(UUID userId, UUID scheduleId) throws DatabaseException {
@@ -53,68 +79,50 @@ public final class ScheduleRepository {
         Map<String, String> params = new HashMap<>();
         params.put("id", "eq." + scheduleId);
         params.put("user_id", "eq." + userId);
-        Schedule[] arr = getSchedules(params);
-        return arr.length == 0 ? null : arr[0];
-    }
-
-    public Schedule[] searchByTitle(UUID userId, String title) throws DatabaseException {
-        if (userId == null) return new Schedule[0];
-        Map<String, String> params = new HashMap<>();
-        params.put("user_id", "eq." + userId);
-        params.put("title", "ilike.%" + title + "%");
-        return getSchedules(params);
-    }
-
-    public Schedule[] searchByDate(UUID userId, String date) throws DatabaseException {
-        if (userId == null) return new Schedule[0];
-        Map<String, String> params = new HashMap<>();
-        params.put("user_id", "eq." + userId);
-        params.put("task_date", "eq." + date);
-        return getSchedules(params);
-    }
-
-    public Schedule[] searchByStatus(UUID userId, String status) throws DatabaseException {
-        if (userId == null) return new Schedule[0];
-        Map<String, String> params = new HashMap<>();
-        params.put("user_id", "eq." + userId);
-        params.put("status", "eq." + status);
-        return getSchedules(params);
-    }
-
-    public Schedule updateSchedule(UUID userId, Schedule schedule) throws DatabaseException {
-        if (userId == null || schedule == null || schedule.getId() == null) {
-            throw new IllegalArgumentException("User and schedule id are required for update");
-        }
-        String path = TABLE + "?id=eq." + schedule.getId() + "&user_id=eq." + userId;
-        Map<String, Object> fields = new HashMap<>();
-        fields.put("title", schedule.getTitle());
-        fields.put("description", schedule.getDescription());
-        fields.put("task_date", schedule.getTaskDate());
-        fields.put("start_time", schedule.getStartTime());
-        fields.put("end_time", schedule.getEndTime());
-        fields.put("priority", schedule.getPriority());
-        fields.put("status", schedule.getStatus());
-        fields.put("updated_at", schedule.getUpdatedAt());
-        client.patch(path, fields);
-        return getScheduleById(userId, schedule.getId());
-    }
-
-    public void deleteSchedule(UUID userId, UUID scheduleId) throws DatabaseException {
-        if (userId == null || scheduleId == null) return;
-        String path = TABLE + "?id=eq." + scheduleId + "&user_id=eq." + userId;
-        client.delete(path);
-    }
-
-    private Schedule[] getSchedules(Map<String, String> params) throws DatabaseException {
-        String response = client.get(TABLE, params);
-        return parseSchedules(response);
-    }
-
-    private Schedule[] parseSchedules(String response) throws DatabaseException {
+        String resp = client.get(TABLE, params);
         try {
-            return mapper.readValue(response, Schedule[].class);
+            Schedule[] arr = mapper.readValue(resp, Schedule[].class);
+            return arr.length == 0 ? null : arr[0];
         } catch (JsonProcessingException e) {
-            throw new DatabaseException("Failed to parse schedules response", e);
+            System.out.println("Supabase Response:");
+            System.out.println(resp);
+            System.out.println("Jackson exception while parsing schedules response:");
+            e.printStackTrace(System.out);
+            throw new DatabaseException("Failed to parse schedules response: " + e.getMessage(), e);
         }
+    }
+
+    public Schedule[] searchSchedule(UUID userId, String keyword) throws DatabaseException {
+        if (userId == null) return new Schedule[0];
+        if (keyword == null) keyword = "";
+        Map<String, String> params = new HashMap<>();
+        params.put("user_id", "eq." + userId);
+        // use ilike for case-insensitive partial match
+        params.put("title", "ilike.%" + keyword + "%");
+        String resp = client.get(TABLE, params);
+        try {
+            return mapper.readValue(resp, Schedule[].class);
+        } catch (JsonProcessingException e) {
+            System.out.println("Supabase Response:");
+            System.out.println(resp);
+            System.out.println("Jackson exception while parsing schedules response:");
+            e.printStackTrace(System.out);
+            throw new DatabaseException("Failed to parse schedules response: " + e.getMessage(), e);
+        }
+    }
+
+    public Schedule updateSchedule(Schedule schedule) throws DatabaseException {
+        if (schedule == null || schedule.getId() == null) {
+            throw new IllegalArgumentException("Schedule or schedule id cannot be null");
+        }
+        String path = TABLE + "?id=eq." + schedule.getId();
+        client.patch(path, schedule);
+        return getScheduleById(schedule.getId());
+    }
+
+    public void deleteSchedule(UUID scheduleId) throws DatabaseException {
+        if (scheduleId == null) return;
+        String path = TABLE + "?id=eq." + scheduleId;
+        client.delete(path);
     }
 }

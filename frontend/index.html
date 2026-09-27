@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCHEL | Schedule Management</title>
+    <meta name="description" content="SCHEL is a professional scheduling dashboard for plans, categories, and reminders." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body class="landing-page">
+    <div class="landing-shell">
+      <nav class="landing-topbar" aria-label="Main navigation">
+        <div class="brand-wrap">
+          <span class="brand-mark">S</span>
+          <span class="brand-name">SCHEL</span>
+        </div>
+        <div class="landing-actions">
+          <a class="btn btn-secondary" href="login.html">Login</a>
+          <a class="btn btn-primary" href="register.html">Create account</a>
+        </div>
+      </nav>
+
+      <main class="landing-hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Plan smarter</span>
+          <h1>Turn daily plans into a beautifully managed routine.</h1>
+          <p>
+            SCHEL helps individuals organize schedules, group tasks by category, track reminders,
+            and stay focused with a modern productivity workspace.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="register.html">Get started</a>
+            <a class="btn btn-secondary" href="dashboard.html">Preview dashboard</a>
+          </div>
+          <ul class="feature-list" aria-label="Platform highlights">
+            <li>Smart scheduling</li>
+            <li>Category organization</li>
+            <li>Reminder tracking</li>
+          </ul>
+        </div>
+
+        <div class="hero-panel" aria-label="SCHEL dashboard overview">
+          <div class="mini-stat-card">
+            <span class="label">This week</span>
+            <strong>32 tasks</strong>
+            <small>+18% planned</small>
+          </div>
+          <div class="mini-board">
+            <div class="mini-board-header">
+              <span>Schedule overview</span>
+              <span class="badge badge-success">On track</span>
+            </div>
+            <div class="mini-list">
+              <div class="mini-list-item">
+                <span class="dot dot-primary"></span>
+                Design review
+                <strong>09:00</strong>
+              </div>
+              <div class="mini-list-item">
+                <span class="dot dot-warning"></span>
+                Client calls
+                <strong>14:30</strong>
+              </div>
+              <div class="mini-list-item">
+                <span class="dot dot-success"></span>
+                Deep work
+                <strong>16:00</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+  </body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCHEL | Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+  </head>
+  <body class="app-page">
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Sidebar navigation">
+        <div class="brand-wrap">
+          <span class="brand-mark">S</span>
+          <span class="brand-name">SCHEL</span>
+        </div>
+
+        <nav class="main-nav" aria-label="Main navigation">
+          <a class="nav-item active" href="dashboard.html">Dashboard</a>
+          <a class="nav-item" href="schedules.html">Schedules</a>
+          <a class="nav-item" href="categories.html">Categories</a>
+          <a class="nav-item" href="reminders.html">Reminders</a>
+          <a class="nav-item" href="profile.html">Profile</a>
+          <button type="button" class="nav-item nav-button" data-action="logout">Logout</button>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Focus</p>
+          <h3>Today at a glance</h3>
+          <ul>
+            <li>Schedule overview</li>
+            <li>Priority updates</li>
+            <li>Reminder tracker</li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="content-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Overview</p>
+            <h1>Dashboard</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="btn btn-secondary" type="button">Export</button>
+            <button class="btn btn-primary" type="button" data-action="add-schedule">+ Add schedule</button>
+          </div>
+        </header>
+
+        <section class="welcome-panel">
+          <div>
+            <p class="eyebrow" id="welcome-tag">Good morning</p>
+            <h2 id="dashboard-user-name">Welcome back</h2>
+            <p class="welcome-subtitle">Here’s what’s happening with your schedule today.</p>
+          </div>
+          <div class="welcome-actions">
+            <button class="btn btn-primary" type="button" data-action="add-schedule">+ Add Schedule</button>
+            <button class="btn btn-secondary" type="button" data-action="add-reminder">Add Reminder</button>
+          </div>
+        </section>
+
+        <section class="stats-grid" aria-label="Summary statistics">
+          <article class="stat-card accent-cyan" data-stat-card>
+            <div class="stat-meta">
+              <span class="stat-icon">◔</span>
+              <span class="stat-label">Total schedules</span>
+            </div>
+            <strong data-stat="total-schedules">—</strong>
+            <small>Local preview</small>
+          </article>
+
+          <article class="stat-card accent-violet" data-stat-card>
+            <div class="stat-meta">
+              <span class="stat-icon">◌</span>
+              <span class="stat-label">Pending</span>
+            </div>
+            <strong data-stat="pending">—</strong>
+            <small>Awaiting action</small>
+          </article>
+
+          <article class="stat-card accent-green" data-stat-card>
+            <div class="stat-meta">
+              <span class="stat-icon">✓</span>
+              <span class="stat-label">Completed</span>
+            </div>
+            <strong data-stat="completed">—</strong>
+            <small>Finished this week</small>
+          </article>
+
+          <article class="stat-card accent-amber" data-stat-card>
+            <div class="stat-meta">
+              <span class="stat-icon">!</span>
+              <span class="stat-label">Missed</span>
+            </div>
+            <strong data-stat="missed">—</strong>
+            <small>Needs attention</small>
+          </article>
+
+          <article class="stat-card accent-sky" data-stat-card>
+            <div class="stat-meta">
+              <span class="stat-icon">▣</span>
+              <span class="stat-label">Categories</span>
+            </div>
+            <strong data-stat="categories">—</strong>
+            <small>Organized</small>
+          </article>
+
+          <article class="stat-card accent-pink" data-stat-card>
+            <div class="stat-meta">
+              <span class="stat-icon">⏰</span>
+              <span class="stat-label">Reminders</span>
+            </div>
+            <strong data-stat="reminders">—</strong>
+            <small>Scheduled alerts</small>
+          </article>
+        </section>
+
+        <section class="content-grid two-column large-top-gap">
+          <article class="panel-card">
+            <div class="panel-header">
+              <h2>Today’s Schedule</h2>
+              <span class="badge badge-success">On track</span>
+            </div>
+            <div id="today-schedule" class="timeline-list" aria-live="polite"></div>
+          </article>
+
+          <article class="panel-card">
+            <div class="panel-header">
+              <h2>Quick Actions</h2>
+              <span class="badge badge-neutral">Workspace</span>
+            </div>
+            <div class="quick-action-list">
+              <button class="quick-action" type="button" data-action="add-schedule">
+                <span class="qa-icon">＋</span>
+                <span>
+                  <strong>Add Schedule</strong>
+                  <small>Plan a new task</small>
+                </span>
+              </button>
+              <button class="quick-action" type="button" data-action="add-reminder">
+                <span class="qa-icon">⏰</span>
+                <span>
+                  <strong>Add Reminder</strong>
+                  <small>Set a follow-up alert</small>
+                </span>
+              </button>
+              <a class="quick-action" href="categories.html">
+                <span class="qa-icon">▣</span>
+                <span>
+                  <strong>Manage Categories</strong>
+                  <small>Organize your workspace</small>
+                </span>
+              </a>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-grid two-column large-top-gap">
+          <article class="panel-card">
+            <div class="panel-header">
+              <h2>Upcoming Schedules</h2>
+              <a href="schedules.html" class="text-link">View all schedules</a>
+            </div>
+            <div id="upcoming-schedules" class="stack-list" aria-live="polite"></div>
+          </article>
+
+          <article class="panel-card">
+            <div class="panel-header">
+              <h2>Reminders</h2>
+              <a href="reminders.html" class="text-link">View all reminders</a>
+            </div>
+            <div id="reminder-list" class="stack-list" aria-live="polite"></div>
+          </article>
+        </section>
+
+        <section class="content-grid one-column large-top-gap">
+          <article class="panel-card">
+            <div class="panel-header">
+              <h2>Categories</h2>
+              <a href="categories.html" class="text-link">Manage categories</a>
+            </div>
+            <div id="category-list" class="category-list" aria-live="polite"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+  </body>
+</html>

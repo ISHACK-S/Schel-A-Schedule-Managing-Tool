@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCHEL | Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/auth.css" />
+  </head>
+  <body class="auth-page">
+    <div class="auth-shell">
+      <div class="auth-visual">
+        <div class="brand-wrap">
+          <span class="brand-mark">S</span>
+          <span class="brand-name">SCHEL</span>
+        </div>
+        <h1>Stay on top of everything.</h1>
+        <p>Track your work, keep plans in focus, and manage reminders without the clutter.</p>
+        <div class="auth-highlights">
+          <span>Smart schedules</span>
+          <span>Team-ready planning</span>
+          <span>Daily focus</span>
+        </div>
+      </div>
+
+      <main class="auth-card" aria-label="Login form">
+        <div class="auth-header">
+          <p class="eyebrow">Welcome back</p>
+          <h2>Sign in</h2>
+        </div>
+
+        <form class="auth-form" data-form="login" novalidate>
+          <div class="field-group">
+            <label for="identifier">Email or username</label>
+            <input
+              id="identifier"
+              name="identifier"
+              type="text"
+              placeholder="Enter your email or username"
+              autocomplete="username"
+              aria-invalid="false"
+            />
+            <div class="field-error" aria-live="polite"></div>
+          </div>
+
+          <div class="field-group">
+            <label for="login-password">Password</label>
+            <div class="password-field">
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                aria-invalid="false"
+              />
+              <button class="password-toggle" type="button" data-password-toggle aria-label="Show password">Show</button>
+            </div>
+            <div class="field-error" aria-live="polite"></div>
+          </div>
+
+          <div class="form-meta">
+            <label class="checkbox-wrap">
+              <input type="checkbox" />
+              <span>Remember me</span>
+            </label>
+            <a href="#" class="text-link">Forgot password?</a>
+          </div>
+
+          <div class="form-alert" hidden aria-live="polite"></div>
+
+          <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+
+        <p class="auth-footer">
+          New here?
+          <a href="register.html" class="text-link">Create an account</a>
+        </p>
+      </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js?v=phase2"></script>
+  </body>
+</html>
