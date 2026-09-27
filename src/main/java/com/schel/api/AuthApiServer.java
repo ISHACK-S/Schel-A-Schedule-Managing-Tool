@@ -201,7 +201,18 @@ public final class AuthApiServer {
         } catch (IllegalArgumentException e) {
             sendJson(exchange, 400, Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            logUnexpectedAuthFailure("login", e);
             sendJson(exchange, 500, Map.of("error", "Unable to sign in."));
+        }
+    }
+
+    private void logUnexpectedAuthFailure(String operation, Exception exception) {
+        System.err.println("Unexpected authentication API failure during " + operation + ":");
+        for (Throwable current = exception; current != null; current = current.getCause()) {
+            System.err.println(current.getClass().getName());
+            for (StackTraceElement frame : current.getStackTrace()) {
+                System.err.println("\tat " + frame);
+            }
         }
     }
 

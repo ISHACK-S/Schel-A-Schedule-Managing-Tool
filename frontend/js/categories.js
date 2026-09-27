@@ -39,13 +39,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const buildEmptyState = (title, message, actionText, actionHandler) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'empty-state';
-    wrapper.innerHTML = `
-      <div class="empty-icon">🏷️</div>
-      <h3>${title}</h3>
-      <p>${message}</p>
-      <button class="btn btn-primary" type="button">${actionText}</button>
-    `;
-    wrapper.querySelector('button').addEventListener('click', actionHandler);
+    const icon = document.createElement('div');
+    icon.className = 'empty-icon';
+    icon.textContent = '🏷️';
+
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+
+    const description = document.createElement('p');
+    description.textContent = message;
+
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.type = 'button';
+    button.textContent = actionText;
+    button.addEventListener('click', actionHandler);
+
+    wrapper.append(icon, heading, description, button);
     return wrapper;
   };
 
@@ -62,19 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return card;
     });
     skeletons.forEach((card) => categoryList.appendChild(card));
-  };
-
-  const categoryScheduleCount = async (categoryId, categoryName) => {
-    try {
-      const schedules = await window.SCHEL.scheduleApi.getSchedules();
-      return schedules.filter((schedule) => {
-        const matchesId = String(schedule.category_id || '') === String(categoryId);
-        const matchesName = (schedule.category || 'General') === (categoryName || 'General');
-        return matchesId || matchesName;
-      }).length;
-    } catch (error) {
-      return 0;
-    }
   };
 
   const renderCategoryList = async () => {
@@ -101,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     for (const category of visible) {
-      const count = await categoryScheduleCount(category.id, category.name);
       const card = document.createElement('article');
       card.className = 'category-card';
       card.innerHTML = `
@@ -114,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div class="category-body">
-          <p>${count} ${count === 1 ? 'schedule' : 'schedules'}</p>
+          <p>Color ${category.color || 'Not set'}</p>
         </div>
         <div class="category-footer">
           <button class="btn btn-secondary btn-small" type="button" data-edit-id="${category.id}">Edit</button>
@@ -195,12 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const saveButton = document.getElementById('save-category-btn');
+    if (saveButton.disabled) return;
+
     const formData = new FormData(categoryForm);
     const payload = {
-      id: state.pendingEditId || ('category-' + Date.now()),
       name: formData.get('name') || '',
-      color: formData.get('color') || '#5b6cff',
-      user_id: window.SCHEL.getCurrentUser()?.id || 'local-user'
+      color: formData.get('color') || '#5b6cff'
     };
 
     const errors = validateCategoryPayload(payload);
@@ -209,12 +206,29 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const isEditing = Boolean(state.pendingEditId);
+    const originalButtonText = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.classList.add('is-loading');
+    saveButton.textContent = isEditing ? 'Updating…' : 'Creating…';
+
     try {
-      if (state.pendingEditId) {
-        await window.SCHEL.categoryApi.updateCategory(payload);
+      let result;
+      if (isEditing) {
+        result = await window.SCHEL.api.updateCategory(state.pendingEditId, payload);
+        if (!result?.category?.id) {
+          throw new Error('The server did not return the updated category.');
+        }
+        state.categories = state.categories.map((category) => (
+          category.id === result.category.id ? result.category : category
+        ));
         showToast('Category updated successfully.', 'success');
       } else {
-        await window.SCHEL.categoryApi.createCategory(payload);
+        result = await window.SCHEL.api.createCategory(payload);
+        if (!result?.category?.id) {
+          throw new Error('The server did not return the created category.');
+        }
+        state.categories.push(result.category);
         showToast('Category created successfully.', 'success');
       }
 
@@ -222,49 +236,56 @@ document.addEventListener('DOMContentLoaded', () => {
       clearFormErrors();
       state.pendingEditId = null;
       closeModal(categoryModal);
-      await refreshCategories();
+      await renderCategoryList();
     } catch (error) {
-      showToast('Could not save this category.', 'error');
+      showToast(error?.message || 'Could not save this category.', 'error');
+    } finally {
+      saveButton.disabled = false;
+      saveButton.classList.remove('is-loading');
+      saveButton.textContent = originalButtonText;
     }
   };
 
   const handleDelete = async () => {
     if (!state.pendingDeleteId) return;
+    const deleteButton = document.getElementById('confirm-delete-category-btn');
+    if (deleteButton.disabled) return;
+
+    const originalButtonText = deleteButton.textContent;
+    deleteButton.disabled = true;
+    deleteButton.classList.add('is-loading');
+    deleteButton.textContent = 'Deleting…';
 
     try {
-      const schedules = await window.SCHEL.scheduleApi.getSchedules();
-      const inUse = schedules.some((schedule) => {
-        const sameCategoryId = String(schedule.category_id || '') === String(state.pendingDeleteId);
-        const sameCategoryName = (schedule.category || 'General') === state.categories.find((c) => c.id === state.pendingDeleteId)?.name;
-        return sameCategoryId || sameCategoryName;
-      });
-
-      if (inUse) {
-        showToast('This category cannot be deleted while it is being used by existing schedules.', 'error');
-        closeModal(deleteCategoryModal);
-        state.pendingDeleteId = null;
-        return;
-      }
-
-      await window.SCHEL.categoryApi.deleteCategory(state.pendingDeleteId);
+      const categoryId = state.pendingDeleteId;
+      await window.SCHEL.api.deleteCategory(categoryId);
+      state.categories = state.categories.filter((category) => category.id !== categoryId);
       showToast('Category deleted successfully.', 'success');
       closeModal(deleteCategoryModal);
       state.pendingDeleteId = null;
-      await refreshCategories();
+      await renderCategoryList();
     } catch (error) {
-      showToast('Could not delete this category.', 'error');
+      showToast(error?.message || 'Could not delete this category.', 'error');
+    } finally {
+      deleteButton.disabled = false;
+      deleteButton.classList.remove('is-loading');
+      deleteButton.textContent = originalButtonText;
     }
   };
 
   const refreshCategories = async () => {
     renderLoading();
     try {
-      state.categories = await window.SCHEL.categoryApi.getCategories();
+      const result = await window.SCHEL.api.getCategories();
+      if (!Array.isArray(result?.categories)) {
+        throw new Error('The server returned an invalid categories response.');
+      }
+      state.categories = result.categories;
       await renderCategoryList();
     } catch (error) {
       categoryList.innerHTML = '';
-      categoryList.appendChild(buildEmptyState('Unable to load categories', 'Please try again in a moment.', 'Try Again', refreshCategories));
-      showToast('Unable to load categories.', 'error');
+      categoryList.appendChild(buildEmptyState('Unable to load categories', error?.message || 'Please try again in a moment.', 'Try Again', refreshCategories));
+      showToast(error?.message || 'Unable to load categories.', 'error');
     }
   };
 
