@@ -7,35 +7,6 @@ window.SCHEL_CONFIG = {
 };
 
 window.SCHEL = {
-  apiRequest: async function (path, options = {}) {
-    const baseUrl = (window.SCHEL_CONFIG && window.SCHEL_CONFIG.apiBaseUrl) || 'http://localhost:8080';
-    const response = await fetch(`${baseUrl}${path}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      },
-      ...options
-    });
-
-    const text = await response.text();
-    let payload = null;
-
-    if (text) {
-      try {
-        payload = JSON.parse(text);
-      } catch (error) {
-        payload = { message: text };
-      }
-    }
-
-    if (!response.ok) {
-      const message = payload && payload.error ? payload.error : payload && payload.message ? payload.message : 'Request failed.';
-      throw new Error(message);
-    }
-
-    return payload;
-  },
-
   isAuthenticated: function () {
     const raw = localStorage.getItem(window.SCHEL_CONFIG.authTokenKey);
     if (!raw) return false;
@@ -342,43 +313,4 @@ window.SCHEL = {
     }
   },
 
-  authApi: {
-    login: async function (payload) {
-      const { identifier, password } = payload || {};
-
-      if (!identifier || !password) {
-        throw new Error('Invalid email or password.');
-      }
-
-      const result = await window.SCHEL.apiRequest('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ identifier, password })
-      });
-
-      if (!result || !result.user) {
-        throw new Error('Unable to sign in.');
-      }
-
-      return result;
-    },
-
-    register: async function (payload) {
-      const { username, email, password } = payload || {};
-
-      if (!username || !email || !password) {
-        throw new Error('Please complete all required fields.');
-      }
-
-      const result = await window.SCHEL.apiRequest('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ username, email, password })
-      });
-
-      if (!result || !result.user) {
-        throw new Error('Unable to register this account.');
-      }
-
-      return result;
-    }
-  }
 };

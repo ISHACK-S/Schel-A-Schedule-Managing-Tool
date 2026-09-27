@@ -35,6 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
     alertBox.textContent = message;
   };
 
+  const getRequestErrorMessage = (error) => {
+    if (error instanceof TypeError || /failed to fetch|networkerror/i.test(error?.message || '')) {
+      return 'Unable to reach SCHEL. Check that the backend is running and try again.';
+    }
+    return error?.message || 'Something went wrong. Please try again.';
+  };
+
   const getFormValues = (form) => Object.fromEntries(new FormData(form).entries());
 
   const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -141,10 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
       showFormMessage(form, 'info', formType === 'login' ? 'Checking your account…' : 'Creating your account…');
 
       try {
-        const method = formType === 'login' ? window.SCHEL.authApi.login : window.SCHEL.authApi.register;
-        const result = await method(values);
-
         if (formType === 'register') {
+          const result = await window.SCHEL.api.register(
+            String(values.username || '').trim(),
+            String(values.email || '').trim(),
+            values.password
+          );
+          if (!result?.user) {
+            throw new Error('The server did not confirm account creation. Please try again.');
+          }
           showFormMessage(form, 'success', 'Account created successfully. Redirecting to sign in…');
           setTimeout(() => {
             window.location.href = 'login.html';
@@ -152,15 +164,20 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        window.SCHEL.setCurrentUser(result.user);
+        const result = await window.SCHEL.api.login(
+          String(values.identifier || '').trim(),
+          values.password
+        );
+        if (!result?.user || !window.SCHEL.setCurrentUser(result.user)) {
+          throw new Error('The server response could not be saved as a session. Please try again.');
+        }
         showFormMessage(form, 'success', 'Welcome back. Redirecting to your dashboard…');
 
         setTimeout(() => {
           window.location.href = 'dashboard.html';
         }, 500);
       } catch (error) {
-        console.error('Authentication error:', error);
-        showFormMessage(form, 'error', error?.message || 'Please check your connection and try again.');
+        showFormMessage(form, 'error', getRequestErrorMessage(error));
       } finally {
         submitButton.disabled = false;
         submitButton.classList.remove('is-loading');
