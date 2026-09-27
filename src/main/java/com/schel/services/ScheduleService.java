@@ -7,11 +7,16 @@ import com.schel.models.Schedule;
 import com.schel.models.User;
 import com.schel.repository.ScheduleRepository;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public final class ScheduleService {
+
+    private static final Set<String> PRIORITIES = Set.of("LOW", "MEDIUM", "HIGH");
+    private static final Set<String> STATUSES = Set.of("PENDING", "COMPLETED", "MISSED");
 
     private final ScheduleRepository repository;
     private final AuthController authController;
@@ -46,7 +51,17 @@ public final class ScheduleService {
 
     public Schedule[] searchSchedules(String keyword) throws DatabaseException, AuthenticationException {
         User user = authController.getCurrentUser().orElseThrow(() -> new AuthenticationException("User must be logged in"));
-        return repository.searchSchedule(user.getId(), keyword);
+        return repository.searchByTitle(user.getId(), keyword);
+    }
+
+    public Schedule[] searchSchedulesByDate(String date) throws DatabaseException, AuthenticationException {
+        User user = authController.getCurrentUser().orElseThrow(() -> new AuthenticationException("User must be logged in"));
+        return repository.searchByDate(user.getId(), date);
+    }
+
+    public Schedule[] searchSchedulesByStatus(String status) throws DatabaseException, AuthenticationException {
+        User user = authController.getCurrentUser().orElseThrow(() -> new AuthenticationException("User must be logged in"));
+        return repository.searchByStatus(user.getId(), status);
     }
 
     public Schedule updateSchedule(Schedule schedule) throws DatabaseException, AuthenticationException {
@@ -56,50 +71,54 @@ public final class ScheduleService {
         }
         User user = authController.getCurrentUser().orElseThrow(() -> new AuthenticationException("User must be logged in"));
 
-        // Ensure schedule belongs to current user
-        Schedule existing = repository.getScheduleById(schedule.getId());
+        Schedule existing = repository.getScheduleById(user.getId(), schedule.getId());
         if (existing == null) {
-            throw new IllegalArgumentException("Schedule not found");
-        }
-        if (!user.getId().equals(existing.getUserId())) {
-            throw new IllegalArgumentException("Cannot modify another user's schedule");
+            throw new IllegalArgumentException("Schedule not found.");
         }
 
-        // Keep userId consistent
         schedule.setUserId(user.getId());
-
         validateScheduleInput(schedule);
+        schedule.setUpdatedAt(LocalDateTime.now());
 
-        return repository.updateSchedule(schedule);
+        Schedule updated = repository.updateSchedule(user.getId(), schedule);
+        if (updated == null) {
+            throw new IllegalArgumentException("Schedule not found.");
+        }
+        return updated;
     }
 
     public void deleteSchedule(UUID scheduleId) throws DatabaseException, AuthenticationException {
-        if (scheduleId == null) return;
+        if (scheduleId == null) {
+            throw new IllegalArgumentException("Schedule ID is required.");
+        }
         User user = authController.getCurrentUser().orElseThrow(() -> new AuthenticationException("User must be logged in"));
-        Schedule existing = repository.getScheduleById(scheduleId);
+        Schedule existing = repository.getScheduleById(user.getId(), scheduleId);
         if (existing == null) {
-            throw new IllegalArgumentException("Schedule not found");
+            throw new IllegalArgumentException("Schedule not found.");
         }
-        if (!user.getId().equals(existing.getUserId())) {
-            throw new IllegalArgumentException("Cannot delete another user's schedule");
-        }
-        repository.deleteSchedule(scheduleId);
+        repository.deleteSchedule(user.getId(), scheduleId);
     }
 
     private void validateScheduleInput(Schedule schedule) {
         if (schedule.getTitle() == null || schedule.getTitle().isBlank()) {
-            throw new IllegalArgumentException("Title cannot be empty");
+            throw new IllegalArgumentException("Title is required.");
         }
         if (schedule.getTaskDate() == null) {
-            throw new IllegalArgumentException("Task date is required");
+            throw new IllegalArgumentException("Invalid date format.");
         }
         LocalTime s = schedule.getStartTime();
         LocalTime e = schedule.getEndTime();
         if (s == null || e == null) {
-            throw new IllegalArgumentException("Start time and end time are required");
+            throw new IllegalArgumentException("Invalid time format.");
         }
         if (!s.isBefore(e)) {
-            throw new IllegalArgumentException("Start time must be before end time");
+            throw new IllegalArgumentException("End time must be after start time.");
+        }
+        if (schedule.getPriority() == null || !PRIORITIES.contains(schedule.getPriority())) {
+            throw new IllegalArgumentException("Invalid priority.");
+        }
+        if (schedule.getStatus() == null || !STATUSES.contains(schedule.getStatus())) {
+            throw new IllegalArgumentException("Invalid status.");
         }
     }
 }
