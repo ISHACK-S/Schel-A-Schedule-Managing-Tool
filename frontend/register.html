@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCHEL | Register</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/auth.css" />
+  </head>
+  <body class="auth-page">
+    <div class="auth-shell">
+      <div class="auth-visual">
+        <div class="brand-wrap">
+          <span class="brand-mark">S</span>
+          <span class="brand-name">SCHEL</span>
+        </div>
+        <h1>Build structure around your time.</h1>
+        <p>Create a plan you can actually keep up with and align every detail of your schedule.</p>
+        <div class="auth-highlights">
+          <span>Clear priorities</span>
+          <span>Simple tracking</span>
+          <span>Better focus</span>
+        </div>
+      </div>
+
+      <main class="auth-card" aria-label="Registration form">
+        <div class="auth-header">
+          <p class="eyebrow">Create account</p>
+          <h2>Get started</h2>
+        </div>
+
+        <form class="auth-form" data-form="register" novalidate>
+          <div class="field-group">
+            <label for="register-username">Username</label>
+            <input
+              id="register-username"
+              name="username"
+              type="text"
+              placeholder="Choose a username"
+              autocomplete="username"
+              aria-invalid="false"
+            />
+            <div class="field-error" aria-live="polite"></div>
+          </div>
+
+          <div class="field-group">
+            <label for="register-email">Email</label>
+            <input
+              id="register-email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              autocomplete="email"
+              aria-invalid="false"
+            />
+            <div class="field-error" aria-live="polite"></div>
+          </div>
+
+          <div class="field-group">
+            <label for="register-password">Password</label>
+            <div class="password-field">
+              <input
+                id="register-password"
+                name="password"
+                type="password"
+                placeholder="Create a password"
+                autocomplete="new-password"
+                aria-invalid="false"
+              />
+              <button class="password-toggle" type="button" data-password-toggle aria-label="Show password">Show</button>
+            </div>
+            <div class="field-error" aria-live="polite"></div>
+          </div>
+
+          <div class="field-group">
+            <label for="register-confirm-password">Confirm password</label>
+            <div class="password-field">
+              <input
+                id="register-confirm-password"
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                autocomplete="new-password"
+                aria-invalid="false"
+              />
+              <button class="password-toggle" type="button" data-password-toggle aria-label="Show password">Show</button>
+            </div>
+            <div class="field-error" aria-live="polite"></div>
+          </div>
+
+          <p class="help-text">Use at least 8 characters with a mix of letters and numbers.</p>
+
+          <div class="form-alert" hidden aria-live="polite"></div>
+
+          <button type="submit" class="btn btn-primary btn-block">Create account</button>
+        </form>
+
+        <p class="auth-footer">
+          Already have an account?
+          <a href="login.html" class="text-link">Sign in</a>
+        </p>
+      </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+  </body>
+</html>
