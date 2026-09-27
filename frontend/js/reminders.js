@@ -92,13 +92,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const buildEmptyState = (title, message, actionText, actionHandler) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'empty-state';
-    wrapper.innerHTML = `
-      <div class="empty-icon">🔔</div>
-      <h3>${title}</h3>
-      <p>${message}</p>
-      <button class="btn btn-primary" type="button">${actionText}</button>
-    `;
-    wrapper.querySelector('button').addEventListener('click', actionHandler);
+    const icon = document.createElement('div');
+    icon.className = 'empty-icon';
+    icon.textContent = '🔔';
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    const description = document.createElement('p');
+    description.textContent = message;
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.type = 'button';
+    button.textContent = actionText;
+    button.addEventListener('click', actionHandler);
+    wrapper.append(icon, heading, description, button);
     return wrapper;
   };
 
@@ -123,17 +129,15 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const populateScheduleOptions = () => {
-    const scheduleOptions = ['<option value="ALL">All schedules</option>'];
-    const formOptions = ['<option value="">Select a schedule</option>'];
+    reminderScheduleFilter.replaceChildren(new Option('All schedules', 'ALL'));
+    reminderScheduleSelect.replaceChildren(new Option('Select a schedule', ''));
 
     state.schedules.forEach((schedule) => {
       const label = `${schedule.title || 'Untitled schedule'} · ${schedule.task_date || 'No date'}`;
-      scheduleOptions.push(`<option value="${schedule.id}">${label}</option>`);
-      formOptions.push(`<option value="${schedule.id}">${label}</option>`);
+      reminderScheduleFilter.add(new Option(label, schedule.id));
+      reminderScheduleSelect.add(new Option(label, schedule.id));
     });
 
-    reminderScheduleFilter.innerHTML = scheduleOptions.join('');
-    reminderScheduleSelect.innerHTML = formOptions.join('');
     reminderScheduleSelect.disabled = state.schedules.length === 0;
   };
 
@@ -272,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reminder-modal-title').textContent = 'Edit Reminder';
     document.getElementById('save-reminder-btn').textContent = 'Update Reminder';
     reminderScheduleSelect.value = reminder.schedule_id || '';
+    reminderScheduleSelect.disabled = true;
     if (reminder.reminder_time) {
       const date = new Date(reminder.reminder_time);
       const localValue = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -359,11 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const payload = {
-      id: state.pendingEditId || ('reminder-' + Date.now()),
       schedule_id: reminderScheduleSelect.value,
-      reminder_time: document.getElementById('reminder-time').value,
-      is_sent: state.pendingEditId ? state.reminders.find((item) => item.id === state.pendingEditId)?.is_sent || false : false,
-      user_id: window.SCHEL.getCurrentUser()?.id || 'local-user'
+      reminder_time: document.getElementById('reminder-time').value
     };
 
     const errors = validateReminderPayload(payload);
@@ -372,12 +374,31 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const saveButton = document.getElementById('save-reminder-btn');
+    if (saveButton.disabled) return;
+    const originalButtonText = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.classList.add('is-loading');
+    saveButton.textContent = state.pendingEditId ? 'Updating…' : 'Creating…';
+
     try {
+      let result;
       if (state.pendingEditId) {
-        await window.SCHEL.reminderApi.updateReminder(payload);
+        result = await window.SCHEL.api.updateReminder(state.pendingEditId, {
+          reminder_time: payload.reminder_time
+        });
+        if (!result?.reminder?.id) {
+          throw new Error('The server did not return the updated reminder.');
+        }
+        const index = state.reminders.findIndex((item) => item.id === result.reminder.id);
+        if (index >= 0) state.reminders[index] = result.reminder;
         showToast('Reminder updated successfully.', 'success');
       } else {
-        await window.SCHEL.reminderApi.createReminder(payload);
+        result = await window.SCHEL.api.createReminder(payload);
+        if (!result?.reminder?.id) {
+          throw new Error('The server did not return the created reminder.');
+        }
+        state.reminders.push(result.reminder);
         showToast('Reminder created successfully.', 'success');
       }
 
@@ -385,23 +406,38 @@ document.addEventListener('DOMContentLoaded', () => {
       state.pendingEditId = null;
       clearFormErrors();
       closeModal(reminderModal);
-      await refreshReminders();
+      renderReminderList();
     } catch (error) {
-      showToast('Could not save this reminder.', 'error');
+      showToast(error?.message || 'Could not save this reminder.', 'error');
+    } finally {
+      saveButton.disabled = false;
+      saveButton.classList.remove('is-loading');
+      saveButton.textContent = originalButtonText;
+      reminderScheduleSelect.disabled = state.schedules.length === 0 || Boolean(state.pendingEditId);
     }
   };
 
   const handleDelete = async () => {
     if (!state.pendingDeleteId) return;
+    const deleteButton = document.getElementById('confirm-delete-reminder-btn');
+    if (deleteButton.disabled) return;
+    const originalButtonText = deleteButton.textContent;
+    deleteButton.disabled = true;
+    deleteButton.classList.add('is-loading');
+    deleteButton.textContent = 'Deleting…';
 
     try {
-      await window.SCHEL.reminderApi.deleteReminder(state.pendingDeleteId);
+      await window.SCHEL.api.deleteReminder(state.pendingDeleteId);
       showToast('Reminder deleted successfully.', 'success');
       closeModal(deleteReminderModal);
       state.pendingDeleteId = null;
       await refreshReminders();
     } catch (error) {
-      showToast('Could not delete this reminder.', 'error');
+      showToast(error?.message || 'Could not delete this reminder.', 'error');
+    } finally {
+      deleteButton.disabled = false;
+      deleteButton.classList.remove('is-loading');
+      deleteButton.textContent = originalButtonText;
     }
   };
 
@@ -412,19 +448,23 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       state.schedules = [];
       populateScheduleOptions();
-      showToast('Unable to load schedules for reminders.', 'error');
+      showToast(error?.message || 'Unable to load schedules for reminders.', 'error');
     }
   };
 
   const refreshReminders = async () => {
     renderLoading();
     try {
-      state.reminders = await window.SCHEL.reminderApi.getReminders();
+      const result = await window.SCHEL.api.getReminders();
+      if (!Array.isArray(result?.reminders)) {
+        throw new Error('The server returned an invalid reminders response.');
+      }
+      state.reminders = result.reminders;
       renderReminderList();
     } catch (error) {
       reminderList.innerHTML = '';
-      reminderList.appendChild(buildEmptyState('Unable to load reminders', 'Please try again in a moment.', 'Try Again', refreshReminders));
-      showToast('Unable to load reminders.', 'error');
+      reminderList.appendChild(buildEmptyState('Unable to load reminders', error?.message || 'Please try again in a moment.', 'Try Again', refreshReminders));
+      showToast(error?.message || 'Unable to load reminders.', 'error');
     }
   };
 

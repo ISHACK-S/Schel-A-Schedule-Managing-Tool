@@ -1,17 +1,19 @@
 package com.schel.repository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.schel.database.SupabaseClient;
-import com.schel.exceptions.DatabaseException;
-import com.schel.models.Reminder;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.schel.database.SupabaseClient;
+import com.schel.exceptions.DatabaseException;
+import com.schel.models.Reminder;
 
 public final class ReminderRepository {
 
@@ -97,7 +99,29 @@ public final class ReminderRepository {
         try {
             return mapper.readValue(response, Reminder[].class);
         } catch (JsonProcessingException e) {
+            logReminderParseFailure(response, e);
             throw new DatabaseException("Failed to parse reminders response", e);
+        }
+    }
+
+    private void logReminderParseFailure(String response, JsonProcessingException exception) {
+        System.err.println("Reminder response parse failure: " + exception.getClass().getSimpleName());
+        if (exception instanceof JsonMappingException mappingException) {
+            System.err.println("Reminder response field path: " + mappingException.getPathReference());
+        }
+        try {
+            JsonNode root = mapper.readTree(response);
+            System.err.println("Reminder response root type: " + (root == null ? "null" : root.getNodeType()));
+            if (root != null && root.isArray()) {
+                System.err.println("Reminder response row count: " + root.size());
+                if (root.size() > 0 && root.get(0).isObject()) {
+                    root.get(0).fields().forEachRemaining(entry -> System.err.println(
+                            "Reminder response field type " + entry.getKey() + ": " + entry.getValue().getNodeType()));
+                }
+            }
+        } catch (JsonProcessingException diagnosticException) {
+            System.err.println("Reminder response structure could not be inspected: "
+                    + diagnosticException.getClass().getSimpleName());
         }
     }
 

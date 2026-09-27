@@ -22,11 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const state = {
     schedules: [],
+    categories: [],
     sortMode: 'date-asc',
     pendingCreateId: null,
     pendingDeleteId: null,
     selectedDetailId: null,
-    currentCategoryOptions: []
   };
 
   const toTitleCase = (value) => (value || '').replace(/\b\w/g, (char) => char.toUpperCase());
@@ -63,22 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   };
 
-  const normalizeCategoryList = (schedules) => {
-    const unique = new Map();
-    schedules.forEach((schedule) => {
-      const category = schedule.category || 'General';
-      if (!unique.has(category)) {
-        unique.set(category, category);
-      }
-    });
-    return [...unique.values()];
+  const getScheduleCategoryName = (schedule) => {
+    const category = state.categories.find((item) => item.id === schedule.category_id);
+    return category?.name || 'Unassigned';
   };
 
-  const buildCategoryOptions = (categories) => {
-    const selectedValue = scheduleCategoryFilter.value || 'ALL';
-    scheduleCategoryFilter.innerHTML = '<option value="ALL">All</option>' + categories.map((category) => `<option value="${category}">${category}</option>`).join('');
-    const nextValue = categories.includes(selectedValue) ? selectedValue : 'ALL';
-    scheduleCategoryFilter.value = nextValue;
+  const populateCategorySelectors = () => {
+    const filterValue = scheduleCategoryFilter.value || 'ALL';
+    scheduleCategoryFilter.replaceChildren(new Option('All', 'ALL'));
+    state.categories.forEach((category) => {
+      scheduleCategoryFilter.add(new Option(category.name, category.id));
+    });
+    scheduleCategoryFilter.value = state.categories.some((category) => category.id === filterValue)
+      ? filterValue
+      : 'ALL';
+
+    const formSelector = document.getElementById('schedule-category');
+    formSelector.replaceChildren(new Option('No category', ''));
+    state.categories.forEach((category) => {
+      formSelector.add(new Option(category.name, category.id));
+    });
   };
 
   const setScheduleCount = (list) => {
@@ -146,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const matchesDate = !dateFilter || (schedule.task_date || '').toString() === dateFilter;
       const matchesStatus = status === 'ALL' || (schedule.status || '').toUpperCase() === status;
       const matchesPriority = priority === 'ALL' || (schedule.priority || '').toUpperCase() === priority;
-      const matchesCategory = category === 'ALL' || (schedule.category || 'General') === category;
+      const matchesCategory = category === 'ALL' || schedule.category_id === category;
       return matchesSearch && matchesDate && matchesStatus && matchesPriority && matchesCategory;
     });
 
@@ -217,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="badge badge-status ${getStatusClass(schedule.status)}">${toTitleCase(schedule.status || 'PENDING')}</span>
         </div>
         <div class="schedule-footer">
-          <span class="category-pill">Category: ${schedule.category || 'General'}</span>
+          <span class="category-pill">Category: ${getScheduleCategoryName(schedule)}</span>
           <div class="schedule-actions">
             <button class="btn btn-secondary btn-small" type="button" data-edit-id="${schedule.id}">Edit</button>
             <button class="btn btn-danger btn-small" type="button" data-delete-id="${schedule.id}">Delete</button>
@@ -264,9 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.pendingCreateId = null;
     document.getElementById('schedule-priority').value = 'MEDIUM';
     document.getElementById('schedule-status').value = 'PENDING';
-    if (state.currentCategoryOptions.length) {
-      document.getElementById('schedule-category').value = state.currentCategoryOptions[0];
-    }
+    document.getElementById('schedule-category').value = state.categories[0]?.id || '';
     scheduleModal.classList.add('open');
     scheduleModal.setAttribute('aria-hidden', 'false');
   };
@@ -285,13 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('schedule-end-time').value = schedule.end_time || '';
     document.getElementById('schedule-priority').value = (schedule.priority || 'MEDIUM').toUpperCase();
     document.getElementById('schedule-status').value = (schedule.status || 'PENDING').toUpperCase();
-    const categoryValue = schedule.category || 'General';
     const categorySelector = document.getElementById('schedule-category');
-    if ([...categorySelector.options].some((option) => option.value === categoryValue)) {
-      categorySelector.value = categoryValue;
-    } else if (state.currentCategoryOptions.length) {
-      categorySelector.value = state.currentCategoryOptions[0];
-    }
+    categorySelector.value = schedule.category_id || '';
     scheduleModal.classList.add('open');
     scheduleModal.setAttribute('aria-hidden', 'false');
   };
@@ -321,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div>
           <span class="detail-label">Category</span>
-          <strong>${schedule.category || 'General'}</strong>
+          <strong>${getScheduleCategoryName(schedule)}</strong>
         </div>
         <div>
           <span class="detail-label">Date</span>
@@ -415,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
       end_time: formData.get('end_time') || '',
       priority: formData.get('priority') || 'MEDIUM',
       status: formData.get('status') || 'PENDING',
-      category: formData.get('category') || 'General'
+      category_id: formData.get('category') || null
     };
 
     const errors = validateSchedulePayload(payload);
@@ -466,8 +463,12 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const schedules = await window.SCHEL.scheduleApi.getSchedules();
       state.schedules = schedules;
-      state.currentCategoryOptions = normalizeCategoryList(schedules);
-      buildCategoryOptions(state.currentCategoryOptions);
+      const categoryResult = await window.SCHEL.api.getCategories();
+      if (!Array.isArray(categoryResult?.categories)) {
+        throw new Error('The server returned an invalid categories response.');
+      }
+      state.categories = categoryResult.categories;
+      populateCategorySelectors();
       renderScheduleList();
     } catch (error) {
       scheduleList.innerHTML = '';
@@ -525,6 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const categorySelector = document.getElementById('schedule-category');
-  categorySelector.innerHTML = '<option value="General">General</option>';
+  categorySelector.replaceChildren(new Option('Loading categories…', ''));
   refreshSchedules();
 });

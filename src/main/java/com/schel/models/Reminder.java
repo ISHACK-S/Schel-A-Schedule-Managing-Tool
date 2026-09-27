@@ -1,10 +1,10 @@
 package com.schel.models;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Reminder {
@@ -47,6 +47,7 @@ public class Reminder {
         this.reminderTime = reminderTime;
     }
 
+    @JsonProperty("is_sent")
     public boolean isSent() {
         return isSent;
     }

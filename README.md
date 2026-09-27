@@ -9,8 +9,10 @@ Schel is a web-enabled schedule management system built using Java 21, Supabase 
 - User Registration and Login
 - BCrypt Password Hashing
 - Schedule CRUD Operations
-- Category Management
-- Reminder Management
+- Category CRUD Operations
+- Reminder CRUD Operations
+- Schedule ↔ Category Integration
+- Schedule Selection for Reminders
 - Dashboard
 - Input Validation
 - User-specific Data Management
@@ -257,7 +259,8 @@ If your local version uses `DatabaseConfig.java`, configure it to read environme
 You need:
 
 - Java 21 or later
-- Maven
+- IntelliJ IDEA
+- Python 3
 - Git
 - A Supabase account
 
@@ -267,27 +270,115 @@ Check Java:
 java -version
 ```
 
-Check Maven:
+Check Python:
 
 ```bash
-mvn -version
+python --version
 ```
 
-## 7. Build
+Maven is the project's dependency/build system. If Maven is configured in IntelliJ, use IntelliJ's Maven integration to resolve dependencies.
 
-```bash
-mvn clean install
+## 7. Run the Backend
+
+Open the project in IntelliJ IDEA.
+
+Run:
+
+```text
+src/main/java/com/schel/Main.java
 ```
 
-## 8. Run
+Start the `main()` function.
 
-Run `Main.java` from IntelliJ IDEA, or use the Maven command configured by your project.
+The Schel API should run on the configured backend port, currently:
 
-## 9. Frontend
+```text
+http://localhost:8080
+```
 
-Configure the frontend to use your local backend/API endpoint. Do not point it at another developer's server.
+Keep the IntelliJ backend process running.
+
+## 8. Run the Frontend
+
+Open a separate CMD or PowerShell terminal.
+
+Go to the project directory:
+
+```cmd
+cd C:\Users\ISHACK\Schel
+```
+
+Start the frontend server:
+
+```cmd
+python -m http.server 8000 --directory frontend
+```
+
+The frontend will be available at:
+
+```text
+http://localhost:8000
+```
+
+Open:
+
+```text
+http://localhost:8000/login.html
+```
+
+Do not start a second Java API server on port `8080` if IntelliJ is already running Schel.
+
+## Quick Run Procedure
+
+```text
+1. Open IntelliJ IDEA.
+2. Open the Schel project.
+3. Start Main.java.
+4. Confirm the Java API is running on port 8080.
+5. Open CMD.
+6. Run:
+   cd C:\Users\ISHACK\Schel
+7. Run:
+   python -m http.server 8000 --directory frontend
+8. Open:
+   http://localhost:8000/login.html
+```
+
+The development architecture is:
+
+```text
+Browser
+   |
+   | http://localhost:8000
+   v
+Frontend
+   |
+   | API requests
+   v
+Java Schel API
+   |
+   | http://localhost:8080
+   v
+Supabase REST API
+   |
+   v
+PostgreSQL
+```
+
+## 9. Verify the Backend
+
+You can check the backend health endpoint at:
+
+```text
+http://localhost:8080/api/health
+```
+
+If port `8080` is occupied, stop the existing process before starting Schel.
+
+If port `8000` is occupied, stop the existing frontend server before starting another one.
 
 # Database Ownership
+
 
 Every installation should use its own Supabase project:
 

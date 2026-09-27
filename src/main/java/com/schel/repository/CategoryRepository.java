@@ -1,15 +1,25 @@
 package com.schel.repository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.schel.database.SupabaseClient;
-import com.schel.exceptions.DatabaseException;
-import com.schel.models.Category;
-
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.schel.database.SupabaseClient;
+import com.schel.exceptions.DatabaseException;
+import com.schel.models.Category;
 
 public final class CategoryRepository {
 
@@ -24,6 +34,26 @@ public final class CategoryRepository {
         this.client = SupabaseClient.getInstance();
         this.mapper = new ObjectMapper();
         this.mapper.findAndRegisterModules();
+        SimpleModule categoryTimestampModule = new SimpleModule();
+        categoryTimestampModule.addDeserializer(OffsetDateTime.class, new JsonDeserializer<>() {
+            @Override
+            public OffsetDateTime deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+                String value = parser.getValueAsString();
+                if (value == null) {
+                    return (OffsetDateTime) context.handleUnexpectedToken(OffsetDateTime.class, parser);
+                }
+                try {
+                    return OffsetDateTime.parse(value);
+                } catch (java.time.format.DateTimeParseException noOffset) {
+                    try {
+                        return LocalDateTime.parse(value).atOffset(ZoneOffset.UTC);
+                    } catch (java.time.format.DateTimeParseException invalidTimestamp) {
+                        throw JsonMappingException.from(parser, "Invalid category created_at timestamp", invalidTimestamp);
+                    }
+                }
+            }
+        });
+        this.mapper.registerModule(categoryTimestampModule);
         this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -86,7 +116,30 @@ public final class CategoryRepository {
         try {
             return mapper.readValue(response, Category[].class);
         } catch (JsonProcessingException e) {
+            logCategoryParseFailure(response, e);
             throw new DatabaseException("Failed to parse categories response", e);
+        }
+    }
+
+    private void logCategoryParseFailure(String response, JsonProcessingException exception) {
+        System.err.println("Category response parse failure: " + exception.getClass().getSimpleName());
+        if (exception instanceof com.fasterxml.jackson.databind.JsonMappingException mappingException) {
+            System.err.println("Category response field path: " + mappingException.getPathReference());
+        }
+
+        try {
+            JsonNode root = mapper.readTree(response);
+            System.err.println("Category response root type: " + (root == null ? "null" : root.getNodeType()));
+            if (root != null && root.isArray()) {
+                System.err.println("Category response row count: " + root.size());
+                if (root.size() > 0 && root.get(0).isObject()) {
+                    root.get(0).fields().forEachRemaining(entry -> System.err.println(
+                            "Category response field type " + entry.getKey() + ": " + entry.getValue().getNodeType()));
+                }
+            }
+        } catch (JsonProcessingException diagnosticException) {
+            System.err.println("Category response structure could not be inspected: "
+                    + diagnosticException.getClass().getSimpleName());
         }
     }
 }

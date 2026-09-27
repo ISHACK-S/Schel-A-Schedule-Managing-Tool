@@ -95,6 +95,7 @@ public final class SupabaseClient {
                 .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
                 .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
                 .header(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .header("Prefer", "return=representation")
                 .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
                 .build();
         return send(request);
@@ -120,6 +121,7 @@ public final class SupabaseClient {
                 .header(Constants.HEADER_API_KEY, config.getSupabaseApiKey())
                 .header(Constants.HEADER_AUTHORIZATION, config.getAuthorizationHeaderValue())
                 .header(Constants.HEADER_ACCEPT, Constants.CONTENT_TYPE_JSON)
+                .header("Prefer", "return=representation")
                 .DELETE()
                 .build();
         return send(request);
