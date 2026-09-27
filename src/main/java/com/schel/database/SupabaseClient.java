@@ -16,7 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 import java.util.StringJoiner;
 
@@ -173,8 +172,10 @@ public final class SupabaseClient {
                 throw new DatabaseException("Supabase request failed with status " + status + ": " + body);
             }
             return body == null ? "" : body;
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new DatabaseException("Supabase request failed", e);
+        } catch (IOException e) {
             throw new DatabaseException("Supabase request failed", e);
         }
     }
