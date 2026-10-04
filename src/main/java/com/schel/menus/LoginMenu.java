@@ -4,7 +4,6 @@ import com.schel.controllers.AuthController;
 import com.schel.exceptions.AuthenticationException;
 import com.schel.exceptions.DatabaseException;
 import com.schel.models.User;
-import com.schel.utils.ConsoleInput;
 
 import java.util.Scanner;
 
@@ -12,7 +11,7 @@ public class LoginMenu {
     private final AuthController authController = AuthController.getInstance();
 
     public boolean show() {
-        Scanner scanner = ConsoleInput.getScanner();
+        Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("=========================");
             System.out.println("SCHEL");

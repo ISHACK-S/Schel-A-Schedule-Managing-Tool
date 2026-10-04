@@ -53,6 +53,8 @@
       '/api/auth/login',
       jsonRequest('POST', { identifier, password })
     ),
+    getCurrentUser: () => request('/api/auth/me'),
+    logout: () => request('/api/auth/logout', { method: 'POST' }),
 
     getCategories: () => request('/api/categories'),
     createCategory: (data) => request('/api/categories', jsonRequest('POST', data)),

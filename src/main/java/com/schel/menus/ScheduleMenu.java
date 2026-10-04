@@ -4,25 +4,21 @@ import com.schel.controllers.ScheduleController;
 import com.schel.exceptions.AuthenticationException;
 import com.schel.exceptions.DatabaseException;
 import com.schel.models.Schedule;
-import com.schel.utils.ConsoleInput;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 public class ScheduleMenu {
-
-    private static final Pattern DATE_FORMAT = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
-    private static final Pattern TIME_FORMAT = Pattern.compile("(?:[01]\\d|2[0-3]):[0-5]\\d");
 
     private final ScheduleController controller = ScheduleController.getInstance();
 
     public void show() {
-        Scanner scanner = ConsoleInput.getScanner();
+        Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("==============================");
             System.out.println("SCHEDULE MANAGER");
@@ -54,7 +50,7 @@ public class ScheduleMenu {
             } catch (DatabaseException e) {
                 System.out.println("Database error: " + e.getMessage());
             } catch (IllegalArgumentException e) {
-                System.out.println(e.getMessage());
+                System.out.println("Invalid input: " + e.getMessage());
             }
 
             System.out.println();
@@ -81,16 +77,24 @@ public class ScheduleMenu {
 
         String status = selectStatus(scanner, null);
 
-        LocalDate taskDate = parseDate(dateStr);
-        LocalTime startTime = parseTime(startStr);
-        LocalTime endTime = parseTime(endStr);
-        if (!startTime.isBefore(endTime)) {
-            throw new IllegalArgumentException("End time must be after start time.");
+        LocalDate taskDate;
+        LocalTime startTime;
+        LocalTime endTime;
+        try {
+            taskDate = LocalDate.parse(dateStr);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid task date format. Expected YYYY-MM-DD");
+        }
+        try {
+            startTime = LocalTime.parse(startStr);
+            endTime = LocalTime.parse(endStr);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid time format. Expected HH:mm");
         }
 
         Schedule s = new Schedule();
         s.setTitle(title);
-        s.setDescription(description.isEmpty() ? null : description);
+        s.setDescription(description);
         s.setTaskDate(taskDate);
         s.setStartTime(startTime);
         s.setEndTime(endTime);
@@ -98,9 +102,10 @@ public class ScheduleMenu {
         s.setStatus(status);
 
         Schedule created = controller.addSchedule(s);
-        System.out.println("Schedule created successfully.");
         if (created != null) {
-            System.out.println("ID: " + created.getId());
+            System.out.println("Schedule added: " + created.getId());
+        } else {
+            System.out.println("Schedule created but could not be retrieved immediately.");
         }
     }
 
@@ -116,44 +121,11 @@ public class ScheduleMenu {
     }
 
     private void handleSearch(Scanner scanner) throws DatabaseException, AuthenticationException {
-        System.out.println("Search by:");
-        System.out.println("1 Title");
-        System.out.println("2 Date");
-        System.out.println("3 Status");
-        System.out.print("Choose an option: ");
-        String searchType = scanner.nextLine().trim();
-
-        Schedule[] arr;
-        String searchDescription;
-        switch (searchType) {
-            case "1" -> {
-                System.out.print("Title contains: ");
-                String title = scanner.nextLine().trim();
-                if (title.isEmpty()) {
-                    throw new IllegalArgumentException("Search title is required.");
-                }
-                arr = controller.searchSchedules(title);
-                searchDescription = title;
-            }
-            case "2" -> {
-                System.out.print("Task Date (YYYY-MM-DD): ");
-                String date = scanner.nextLine().trim();
-                parseDate(date);
-                arr = controller.searchSchedulesByDate(date);
-                searchDescription = date;
-            }
-            case "3" -> {
-                String status = selectStatus(scanner, null);
-                arr = controller.searchSchedulesByStatus(status);
-                searchDescription = status;
-            }
-            default -> {
-                System.out.println("Invalid selection. Please choose 1, 2 or 3.");
-                return;
-            }
-        }
+        System.out.print("Search keyword (title): ");
+        String keyword = scanner.nextLine().trim();
+        Schedule[] arr = controller.searchSchedules(keyword);
         if (arr == null || arr.length == 0) {
-            System.out.println("No schedules found for '" + searchDescription + "'.");
+            System.out.println("No schedules found for '" + keyword + "'.");
             return;
         }
         for (Schedule s : arr) {
@@ -199,24 +171,36 @@ public class ScheduleMenu {
         String dateStr = scanner.nextLine().trim();
         LocalDate taskDate = existing.getTaskDate();
         if (!dateStr.isEmpty()) {
-            taskDate = parseDate(dateStr);
+            try {
+                taskDate = LocalDate.parse(dateStr);
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid date format.");
+                return;
+            }
         }
 
         System.out.print("Start Time (HH:mm) [" + (existing.getStartTime() != null ? existing.getStartTime().toString() : "") + "]: ");
         String startStr = scanner.nextLine().trim();
         LocalTime start = existing.getStartTime();
         if (!startStr.isEmpty()) {
-            start = parseTime(startStr);
+            try {
+                start = LocalTime.parse(startStr);
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid time format.");
+                return;
+            }
         }
 
         System.out.print("End Time (HH:mm) [" + (existing.getEndTime() != null ? existing.getEndTime().toString() : "") + "]: ");
         String endStr = scanner.nextLine().trim();
         LocalTime end = existing.getEndTime();
         if (!endStr.isEmpty()) {
-            end = parseTime(endStr);
-        }
-        if (start == null || end == null || !start.isBefore(end)) {
-            throw new IllegalArgumentException("End time must be after start time.");
+            try {
+                end = LocalTime.parse(endStr);
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid time format.");
+                return;
+            }
         }
 
         String priority = selectPriority(scanner, existing.getPriority());
@@ -238,7 +222,7 @@ public class ScheduleMenu {
         updated.setUpdatedAt(LocalDateTime.now());
 
         Schedule result = controller.updateSchedule(updated);
-        System.out.println("Schedule updated successfully: " + result.getId());
+        System.out.println("Schedule updated: " + result.getId());
     }
 
     private void handleDelete(Scanner scanner) throws DatabaseException, AuthenticationException {
@@ -258,45 +242,22 @@ public class ScheduleMenu {
             return;
         }
         controller.deleteSchedule(id);
-        System.out.println("Schedule deleted successfully.");
+        System.out.println("Schedule deleted.");
     }
 
     private void printScheduleSummary(Schedule s) {
         System.out.println("----------------------------");
         System.out.println("ID: " + s.getId());
         System.out.println("Title: " + safe(s.getTitle()));
-        System.out.println("Description: " + safe(s.getDescription()));
         System.out.println("Date: " + (s.getTaskDate() != null ? s.getTaskDate().toString() : ""));
-        System.out.println("Start Time: " + (s.getStartTime() != null ? s.getStartTime().toString() : ""));
-        System.out.println("End Time: " + (s.getEndTime() != null ? s.getEndTime().toString() : ""));
+        System.out.println("Time: " + (s.getStartTime() != null ? s.getStartTime().toString() : "") + " - " + (s.getEndTime() != null ? s.getEndTime().toString() : ""));
         System.out.println("Priority: " + safe(s.getPriority()));
         System.out.println("Status: " + safe(s.getStatus()));
+        System.out.println("Description: " + safe(s.getDescription()));
     }
 
     private String safe(String s) {
         return s == null ? "" : s;
-    }
-
-    private LocalDate parseDate(String value) {
-        if (!DATE_FORMAT.matcher(value).matches()) {
-            throw new IllegalArgumentException("Invalid date format.");
-        }
-        try {
-            return LocalDate.parse(value);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Invalid date format.");
-        }
-    }
-
-    private LocalTime parseTime(String value) {
-        if (!TIME_FORMAT.matcher(value).matches()) {
-            throw new IllegalArgumentException("Invalid time format.");
-        }
-        try {
-            return LocalTime.parse(value);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Invalid time format.");
-        }
     }
 
     private String selectPriority(Scanner scanner, String current) {

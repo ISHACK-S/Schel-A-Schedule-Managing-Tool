@@ -31,14 +31,6 @@ public final class ScheduleController {
         return service.searchSchedules(keyword);
     }
 
-    public Schedule[] searchSchedulesByDate(String date) throws DatabaseException, AuthenticationException {
-        return service.searchSchedulesByDate(date);
-    }
-
-    public Schedule[] searchSchedulesByStatus(String status) throws DatabaseException, AuthenticationException {
-        return service.searchSchedulesByStatus(status);
-    }
-
     public Schedule updateSchedule(Schedule schedule) throws DatabaseException, AuthenticationException {
         return service.updateSchedule(schedule);
     }
