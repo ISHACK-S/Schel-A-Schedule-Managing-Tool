@@ -70,7 +70,7 @@
               <span class="stat-label">Total schedules</span>
             </div>
             <strong data-stat="total-schedules">—</strong>
-            <small>Local preview</small>
+            <small>From backend</small>
           </article>
 
           <article class="stat-card accent-violet" data-stat-card>
@@ -88,7 +88,7 @@
               <span class="stat-label">Completed</span>
             </div>
             <strong data-stat="completed">—</strong>
-            <small>Finished this week</small>
+            <small>Total completed</small>
           </article>
 
           <article class="stat-card accent-amber" data-stat-card>
@@ -123,7 +123,7 @@
           <article class="panel-card">
             <div class="panel-header">
               <h2>Today’s Schedule</h2>
-              <span class="badge badge-success">On track</span>
+              <span id="dashboard-schedule-status" class="badge badge-success">Loading</span>
             </div>
             <div id="today-schedule" class="timeline-list" aria-live="polite"></div>
           </article>
@@ -191,6 +191,6 @@
 
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard.js?v=phase-e"></script>
   </body>
 </html>

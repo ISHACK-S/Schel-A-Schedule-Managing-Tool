@@ -4,8 +4,8 @@ public final class DatabaseConfig {
 
     private static final String ENV_SUPABASE_URL = "SUPABASE_URL";
     private static final String ENV_SUPABASE_API_KEY = "SUPABASE_API_KEY";
-    private static final String DEFAULT_SUPABASE_URL = "YOUR_URL";
-    private static final String DEFAULT_SUPABASE_API_KEY = "Your_API_KEY";
+    private static final String DEFAULT_SUPABASE_URL = "Nah Id Win";
+    private static final String DEFAULT_SUPABASE_API_KEY = "YOUR_Secret";
     private static final String PLACEHOLDER_SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
     private static final String PLACEHOLDER_SUPABASE_API_KEY = "YOUR_SUPABASE_SECRET_KEY_HERE";
 

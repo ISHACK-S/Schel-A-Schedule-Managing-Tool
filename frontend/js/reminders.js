@@ -81,6 +81,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const getScheduleById = (scheduleId) => state.schedules.find((schedule) => String(schedule.id) === String(scheduleId));
 
+  const getPersistedReminder = async (id, scheduleId, reminderTime) => {
+    const result = await window.SCHEL.api.getReminders();
+    if (!Array.isArray(result?.reminders)) {
+      throw new Error('The server returned an invalid reminders response.');
+    }
+    if (id) {
+      return result.reminders.find((reminder) => String(reminder.id) === String(id)) || null;
+    }
+    const targetTime = new Date(reminderTime).getTime();
+    return result.reminders.find((reminder) => (
+      String(reminder.schedule_id) === String(scheduleId)
+      && new Date(reminder.reminder_time).getTime() === targetTime
+    )) || null;
+  };
+
   const getScheduleDisplay = (schedule) => {
     if (!schedule) return 'Unassigned schedule';
     const parts = [schedule.title || 'Untitled schedule'];
@@ -377,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveButton = document.getElementById('save-reminder-btn');
     if (saveButton.disabled) return;
     const originalButtonText = saveButton.textContent;
+    const reminderTimeUtc = new Date(payload.reminder_time).toISOString();
     saveButton.disabled = true;
     saveButton.classList.add('is-loading');
     saveButton.textContent = state.pendingEditId ? 'Updating…' : 'Creating…';
@@ -384,21 +400,40 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       let result;
       if (state.pendingEditId) {
-        result = await window.SCHEL.api.updateReminder(state.pendingEditId, {
-          reminder_time: payload.reminder_time
-        });
-        if (!result?.reminder?.id) {
-          throw new Error('The server did not return the updated reminder.');
+        try {
+          result = await window.SCHEL.api.updateReminder(state.pendingEditId, {
+            reminder_time: reminderTimeUtc
+          });
+        } catch (requestError) {
+          const persisted = await getPersistedReminder(state.pendingEditId);
+          if (!persisted || new Date(persisted.reminder_time).getTime() !== new Date(reminderTimeUtc).getTime()) {
+            throw requestError;
+          }
+          result = { reminder: persisted };
         }
-        const index = state.reminders.findIndex((item) => item.id === result.reminder.id);
-        if (index >= 0) state.reminders[index] = result.reminder;
+        const updatedReminder = result?.reminder?.id
+          ? result.reminder
+          : await getPersistedReminder(state.pendingEditId);
+        if (!updatedReminder?.id) throw new Error('The server did not return the updated reminder.');
+        const index = state.reminders.findIndex((item) => item.id === updatedReminder.id);
+        if (index >= 0) state.reminders[index] = updatedReminder;
         showToast('Reminder updated successfully.', 'success');
       } else {
-        result = await window.SCHEL.api.createReminder(payload);
-        if (!result?.reminder?.id) {
-          throw new Error('The server did not return the created reminder.');
+        try {
+          result = await window.SCHEL.api.createReminder({
+            schedule_id: payload.schedule_id,
+            reminder_time: reminderTimeUtc
+          });
+        } catch (requestError) {
+          const persisted = await getPersistedReminder(null, payload.schedule_id, reminderTimeUtc);
+          if (!persisted) throw requestError;
+          result = { reminder: persisted };
         }
-        state.reminders.push(result.reminder);
+        const createdReminder = result?.reminder?.id
+          ? result.reminder
+          : await getPersistedReminder(null, payload.schedule_id, reminderTimeUtc);
+        if (!createdReminder?.id) throw new Error('The server did not return the created reminder.');
+        state.reminders.push(createdReminder);
         showToast('Reminder created successfully.', 'success');
       }
 
