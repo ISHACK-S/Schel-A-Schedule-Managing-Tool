@@ -1,16 +1,24 @@
 package com.schel.repository;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.schel.database.SupabaseClient;
 import com.schel.exceptions.DatabaseException;
 import com.schel.models.Reminder;
@@ -28,6 +36,26 @@ public final class ReminderRepository {
         this.client = SupabaseClient.getInstance();
         this.mapper = new ObjectMapper();
         this.mapper.findAndRegisterModules();
+        SimpleModule reminderTimestampModule = new SimpleModule();
+        reminderTimestampModule.addDeserializer(OffsetDateTime.class, new JsonDeserializer<>() {
+            @Override
+            public OffsetDateTime deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+                String value = parser.getValueAsString();
+                if (value == null) {
+                    return (OffsetDateTime) context.handleUnexpectedToken(OffsetDateTime.class, parser);
+                }
+                try {
+                    return OffsetDateTime.parse(value);
+                } catch (java.time.format.DateTimeParseException noOffset) {
+                    try {
+                        return LocalDateTime.parse(value).atOffset(ZoneOffset.UTC);
+                    } catch (java.time.format.DateTimeParseException invalidTimestamp) {
+                        throw JsonMappingException.from(parser, "Invalid reminder_time timestamp", invalidTimestamp);
+                    }
+                }
+            }
+        });
+        this.mapper.registerModule(reminderTimestampModule);
         this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 

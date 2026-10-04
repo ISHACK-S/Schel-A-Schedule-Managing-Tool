@@ -47,6 +47,11 @@ window.SCHEL = {
     return true;
   },
 
+  clearSession: function () {
+    localStorage.removeItem(window.SCHEL_CONFIG.authTokenKey);
+    this.clearUserData();
+  },
+
   clearUserData: function () {
     const storageKeys = [
       'schel_schedule_collection',
@@ -59,10 +64,17 @@ window.SCHEL = {
     storageKeys.forEach((key) => localStorage.removeItem(key));
   },
 
-  logout: function () {
-    localStorage.removeItem(window.SCHEL_CONFIG.authTokenKey);
-    this.clearUserData();
+  logout: async function () {
+    try {
+      await window.SCHEL.api.logout();
+    } catch (error) {
+      window.alert(error?.message || 'Unable to log out. Please try again.');
+      return false;
+    }
+
+    this.clearSession();
     window.location.href = 'login.html';
+    return true;
   },
 
   requireAuth: function () {
@@ -109,12 +121,11 @@ window.SCHEL = {
     },
 
     getSchedules: async function () {
-      const user = window.SCHEL.getCurrentUser();
-      if (!user) return [];
-
       const result = await window.SCHEL.apiRequest('/api/schedules', { method: 'GET' });
-      const items = Array.isArray(result && result.schedules) ? result.schedules : [];
-      return items.map((item) => this.normalizeSchedule(item));
+      if (!Array.isArray(result?.schedules)) {
+        throw new Error('The server returned an invalid schedules response.');
+      }
+      return result.schedules.map((item) => this.normalizeSchedule(item));
     },
 
     createSchedule: async function (payload) {
@@ -133,7 +144,10 @@ window.SCHEL = {
         method: 'POST',
         body: JSON.stringify(safePayload)
       });
-      return this.normalizeSchedule(result && result.schedule ? result.schedule : safePayload);
+      if (!result?.schedule) {
+        throw new Error('The server did not return the created schedule.');
+      }
+      return this.normalizeSchedule(result.schedule);
     },
 
     updateSchedule: async function (payload) {
@@ -157,158 +171,14 @@ window.SCHEL = {
         method: 'PATCH',
         body: JSON.stringify(safePayload)
       });
-      return this.normalizeSchedule(result && result.schedule ? result.schedule : { ...safePayload, id });
+      if (!result?.schedule) {
+        throw new Error('The server did not return the updated schedule.');
+      }
+      return this.normalizeSchedule(result.schedule);
     },
 
     deleteSchedule: async function (id) {
       await window.SCHEL.apiRequest(`/api/schedules/${id}`, { method: 'DELETE' });
-      return true;
-    }
-  },
-
-  categoryApi: {
-    normalizeCategory: function (value) {
-      const item = value || {};
-      const rawColor = (item.color || '#5b6cff').trim();
-      const isValidHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(rawColor);
-
-      return {
-        id: item.id || null,
-        user_id: item.user_id || null,
-        name: (item.name || 'Untitled category').trim(),
-        color: isValidHex ? rawColor : '#5b6cff',
-        created_at: item.created_at || item.createdAt || null
-      };
-    },
-
-    getCategories: async function () {
-      const user = window.SCHEL.getCurrentUser();
-      if (!user) return [];
-
-      const result = await window.SCHEL.apiRequest('/api/categories', { method: 'GET' });
-      const items = Array.isArray(result && result.categories) ? result.categories : [];
-      return items.map((item) => this.normalizeCategory(item));
-    },
-
-    createCategory: async function (payload) {
-      const safePayload = {
-        name: payload.name,
-        color: payload.color || '#5b6cff'
-      };
-
-      const result = await window.SCHEL.apiRequest('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify(safePayload)
-      });
-
-      const category = result && result.category ? result.category : null;
-      return this.normalizeCategory(category || { ...safePayload });
-    },
-
-    updateCategory: async function (payload) {
-      const id = payload && payload.id;
-      if (!id) {
-        throw new Error('Category id is required.');
-      }
-
-      const safePayload = {
-        name: payload.name,
-        color: payload.color || '#5b6cff'
-      };
-
-      const result = await window.SCHEL.apiRequest(`/api/categories/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(safePayload)
-      });
-
-      const category = result && result.category ? result.category : { ...safePayload, id };
-      return this.normalizeCategory(category);
-    },
-
-    deleteCategory: async function (id) {
-      await window.SCHEL.apiRequest(`/api/categories/${id}`, { method: 'DELETE' });
-      return true;
-    }
-  },
-
-  reminderApi: {
-    normalizeReminder: function (value) {
-      const item = value || {};
-      const scheduleId = item.schedule_id || item.scheduleId || null;
-      const timeValue = item.reminder_time || item.reminderTime || item.datetime || null;
-
-      return {
-        id: item.id || item.reminder_id || null,
-        schedule_id: scheduleId,
-        reminder_time: timeValue,
-        is_sent: Boolean(item.is_sent ?? item.isSent ?? item.sent ?? false)
-      };
-    },
-
-    getSchedules: async function () {
-      return window.SCHEL.scheduleApi.getSchedules();
-    },
-
-    toReminderDateTime: function (value) {
-      if (!value) return null;
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) {
-        return null;
-      }
-      return date.toISOString();
-    },
-
-    getReminders: async function () {
-      const user = window.SCHEL.getCurrentUser();
-      if (!user) return [];
-
-      const result = await window.SCHEL.apiRequest('/api/reminders', { method: 'GET' });
-      const items = Array.isArray(result && result.reminders) ? result.reminders : [];
-      return items.map((item) => this.normalizeReminder(item));
-    },
-
-    createReminder: async function (payload) {
-      const scheduleId = payload && (payload.schedule_id || payload.scheduleId);
-      const reminderTime = this.toReminderDateTime(payload && payload.reminder_time);
-
-      if (!scheduleId) {
-        throw new Error('Please select a schedule.');
-      }
-      if (!reminderTime) {
-        throw new Error('Please select a reminder date and time.');
-      }
-
-      const result = await window.SCHEL.apiRequest('/api/reminders', {
-        method: 'POST',
-        body: JSON.stringify({ schedule_id: scheduleId, reminder_time: reminderTime })
-      });
-
-      const reminder = result && result.reminder ? result.reminder : { schedule_id: scheduleId, reminder_time: reminderTime, is_sent: false };
-      return this.normalizeReminder(reminder);
-    },
-
-    updateReminder: async function (payload) {
-      const id = payload && (payload.id || payload.reminder_id);
-      if (!id) {
-        throw new Error('Reminder id is required.');
-      }
-
-      const reminderTime = this.toReminderDateTime(payload && payload.reminder_time);
-      if (!reminderTime) {
-        throw new Error('Please select a reminder date and time.');
-      }
-
-      const result = await window.SCHEL.apiRequest(`/api/reminders/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ reminder_time: reminderTime })
-      });
-
-      const reminder = result && result.reminder ? result.reminder : { id, reminder_time: reminderTime, is_sent: payload.is_sent || false };
-      return this.normalizeReminder(reminder);
-    },
-
-    deleteReminder: async function (id) {
-      await window.SCHEL.apiRequest(`/api/reminders/${id}`, { method: 'DELETE' });
       return true;
     }
   },

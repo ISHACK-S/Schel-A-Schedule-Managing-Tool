@@ -77,6 +77,16 @@ public final class AuthApiServer {
                 return;
             }
 
+            if ("/api/auth/me".equals(path) && "GET".equalsIgnoreCase(method)) {
+                handleCurrentUser(exchange);
+                return;
+            }
+
+            if ("/api/auth/logout".equals(path) && "POST".equalsIgnoreCase(method)) {
+                handleLogout(exchange);
+                return;
+            }
+
             if ("/api/categories".equals(path) && "GET".equalsIgnoreCase(method)) {
                 handleListCategories(exchange);
                 return;
@@ -204,6 +214,20 @@ public final class AuthApiServer {
             logUnexpectedAuthFailure("login", e);
             sendJson(exchange, 500, Map.of("error", "Unable to sign in."));
         }
+    }
+
+    private void handleCurrentUser(HttpExchange exchange) throws IOException {
+        User user = AuthController.getInstance().getCurrentUser().orElse(null);
+        if (user == null) {
+            sendJson(exchange, 401, Map.of("error", "User must be logged in"));
+            return;
+        }
+        sendJson(exchange, 200, Map.of("user", sanitizeUser(user)));
+    }
+
+    private void handleLogout(HttpExchange exchange) throws IOException {
+        AuthController.getInstance().logout();
+        sendEmpty(exchange, 204);
     }
 
     private void logUnexpectedAuthFailure(String operation, Exception exception) {
